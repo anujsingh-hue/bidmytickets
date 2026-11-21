@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowDownRight, ArrowRight, ArrowUpRight, BadgeCheck, BusFront, Check,
-  ChevronDown, ChevronRight, CirclePlay, Clapperboard, Clock3, Gavel,
-  Heart, MapPin, Menu, Music2, Plane, Play, ShieldCheck, Sparkles,
-  Ticket, TrainFront, Trophy, X, Zap
+  ArrowDownRight, ArrowUpRight, BusFront, ChevronDown, CirclePlay,
+  Clapperboard, Clock3, Gavel, Heart, MapPin, Menu, Music2, Plane,
+  ShieldCheck, Sparkles, Ticket, TrainFront, Trophy, X
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 

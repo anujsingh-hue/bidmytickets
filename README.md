@@ -1,35 +1,29 @@
-# BidMyTicket 🎟️
+# BidMyTicket ✦
 
-**Your Ticket. Their Opportunity.**
+**Your ticket. Their opportunity.**
 
-A premium black-and-gold ticket auction **frontend demo** built using Next.js, React and TypeScript.
+An interactive **design concept**, not a marketplace handling real tickets, user accounts or payments.
 
-## Browser-only setup (GitHub Codespaces)
-
-1. On the repository page, select **Code → Codespaces → Create codespace on main**.
-2. In the terminal run \`npm install\`.
-3. Run \`npm run dev\`.
-4. Open the forwarded port **3000** in your browser.
-
-To check the production build: \`npm run build\`. To lint: \`npm run lint\`.
+## Published showcase
+https://bidmyticket.vercel.app
 
 ## Features
+- Cinematic black-and-gold hero with a visual ticket illustration
+- Filterable six-category showcase with sample ticket cards
+- Interactive ticket preview dialogs and optional demo-only bid increments
+- Zero signups, forms or backend data collection
+- Responsive layout, mobile menu, FAQ, pricing illustration
+- Clear notes about real-world resale/transfer restrictions
 
-- Premium, mobile-responsive black-and-gold homepage
-- Six categories: trains, flights, buses, movies, concerts and sports
-- Browse and filter sample listings
-- Ticket details with countdown and demo bid history
-- Simulated bid validation and browser-local bid persistence
-- Watchlist and dashboard
-- Ticket listing drafts, with suggested 80% starting price
-- Demo account interface with no real sign-in
+Ticket prices, routes, dates, bids and events are fictional examples. Clicking "Try a sample bid" changes only in-memory state on your device, and resets on refresh. The site doesn't request or store customer information.
 
-## Important limits
+## Run in browser-based GitHub Codespaces
+1. Open the repository via **Code → Codespaces**.
+2. Run \`npm install\` then \`npm run dev\`.
+3. Open forwarded port 3000.
+4. Validate with \`npm run build\` and \`npm run test:mobile\`.
 
-This is a **prototype**. Data is saved in the current browser's localStorage, not a real database. Demo bid state does not synchronize across users and is not secure for real money. There is no real authentication, payments, ticket verification or transfer.
+Deployment to Vercel is currently performed manually rather than through a Git integration.
 
-All example tickets and bids are fictitious. Newly created listings are marked restricted, and example train/flight/movie tickets cannot receive even simulated bids. Before real operations, verify provider transfer permission, add server-verified bidding, document security, payment protection and regulatory review.
-
-## Next steps
-
-Supabase database and login → provider eligibility and admin verification → transactional auction engine → supported payments and authorized ticket transfers → deployment.
+## Disclaimer
+Real-world resale and transfer eligibility differs by provider, category and applicable laws. Never infer transferability from these demo previews.

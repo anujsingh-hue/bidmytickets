@@ -1,52 +1,185 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
-import { Ticket, TrainFront, Plane, BusFront, Clapperboard, Music2, Trophy, ArrowRight, Clock3, Heart, MapPin, Gavel, ShieldCheck, Zap, Plus, Search, UserRound, TrendingUp, CheckCircle2, ArrowLeft, CalendarDays } from 'lucide-react';
 
-type Category = 'Trains'|'Flights'|'Buses'|'Movies'|'Concerts'|'Sports';
-type Listing = {id:string; category:Category; title:string; venue:string; date:string; original:number; start:number; highest:number; bids:number[]; ends:number; eligible:boolean; description:string; mine?:boolean};
-type Page = 'home'|'explore'|'detail'|'sell'|'dashboard'|'how'|'login'|'signup';
-const categories:Category[]=['Trains','Flights','Buses','Movies','Concerts','Sports'];
-const example:Listing[]=[
- {id:'demo-bus-1',category:'Buses',title:'Bhopal → Indore Sleeper',venue:'Bhopal • Indore',date:'2027-01-17',original:1200,start:960,highest:1050,bids:[960,1000,1050],ends:Date.now()+1000*60*60*7,eligible:true,description:'Sample intercity journey. Transfer availability requires operator authorization.'},
- {id:'demo-concert-1',category:'Concerts',title:'Golden Hour Live Music Night',venue:'Mumbai • Music Arena',date:'2027-02-12',original:2500,start:2000,highest:2250,bids:[2000,2150,2250],ends:Date.now()+1000*60*60*19,eligible:true,description:'Fictitious event. A real listing requires organizer-approved resale.'},
- {id:'demo-sport-1',category:'Sports',title:'City Stadium Football Final',venue:'New Delhi • City Stadium',date:'2027-02-19',original:1800,start:1440,highest:1520,bids:[1440,1520],ends:Date.now()+1000*60*60*28,eligible:true,description:'Fictitious sports match. Resale depends on organizer rules.'},
- {id:'demo-movie-1',category:'Movies',title:'Friday Premiere • Gold Class',venue:'Pune • Luxe Cinema',date:'2027-01-19',original:750,start:600,highest:600,bids:[],ends:Date.now()+1000*60*60*31,eligible:false,description:'Demonstration only. Movie ticket resale is provider dependent.'},
- {id:'demo-train-1',category:'Trains',title:'Bhopal → New Delhi Express',venue:'Bhopal • New Delhi',date:'2027-01-27',original:1650,start:1320,highest:1320,bids:[],ends:Date.now()+1000*60*60*22,eligible:false,description:'Ordinary Indian Railways tickets cannot generally be resold to a new traveler.'},
- {id:'demo-flight-1',category:'Flights',title:'Delhi → Bengaluru Flight',venue:'New Delhi • Bengaluru',date:'2027-02-22',original:6200,start:4960,highest:4960,bids:[],ends:Date.now()+1000*60*60*35,eligible:false,description:'Many airline tickets are non-transferable. Demo bidding disabled.'}
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowDownRight, ArrowRight, ArrowUpRight, BadgeCheck, BusFront, Check,
+  ChevronDown, ChevronRight, CirclePlay, Clapperboard, Clock3, Gavel,
+  Heart, MapPin, Menu, Music2, Plane, Play, ShieldCheck, Sparkles,
+  Ticket, TrainFront, Trophy, X, Zap
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+type Category = 'Trains' | 'Flights' | 'Buses' | 'Movies' | 'Concerts' | 'Sports';
+type TicketSample = {
+  id: string;
+  category: Category;
+  title: string;
+  subtitle: string;
+  date: string;
+  original: number;
+  bid: number;
+  bids: number;
+  ending: string;
+  code: string;
+  tone: string;
+  tag: string;
+  demoEnabled: boolean;
+};
+const categories: Category[] = ['Trains', 'Flights', 'Buses', 'Movies', 'Concerts', 'Sports'];
+const icons: Record<Category, LucideIcon> = {
+  Trains: TrainFront, Flights: Plane, Buses: BusFront,
+  Movies: Clapperboard, Concerts: Music2, Sports: Trophy
+};
+const tickets: TicketSample[] = [
+  { id: 'concert', category: 'Concerts', title: 'Afterglow Music Festival', subtitle: 'Mumbai · The Arena', date: 'SAT, 13 FEB 2027', original: 3499, bid: 2799, bids: 12, ending: '02h 34m', code: 'AFTERGLOW / 27', tone: 'violet', tag: 'HOT PICK', demoEnabled: true },
+  { id: 'bus', category: 'Buses', title: 'Bhopal to Indore Sleeper', subtitle: 'Bhopal → Indore', date: 'FRI, 22 JAN 2027', original: 1299, bid: 1039, bids: 8, ending: '06h 18m', code: 'THE NIGHT RIDE', tone: 'amber', tag: 'POPULAR', demoEnabled: true },
+  { id: 'sports', category: 'Sports', title: 'The City Football Final', subtitle: 'Delhi · City Stadium', date: 'SUN, 21 FEB 2027', original: 2499, bid: 1999, bids: 16, ending: '01h 48m', code: 'FINAL WHISTLE', tone: 'blue', tag: 'TRENDING', demoEnabled: true },
+  { id: 'movie', category: 'Movies', title: 'Midnight Premiere · Luxe', subtitle: 'Pune · Luxe Cinema', date: 'SAT, 30 JAN 2027', original: 899, bid: 719, bids: 0, ending: 'PREVIEW', code: 'LIGHTS. CAMERA.', tone: 'rose', tag: 'CONCEPT', demoEnabled: false },
+  { id: 'train', category: 'Trains', title: 'The Capital Express', subtitle: 'Bhopal → New Delhi', date: 'MON, 8 FEB 2027', original: 1850, bid: 1480, bids: 0, ending: 'PREVIEW', code: 'JOURNEY / 01', tone: 'sage', tag: 'CONCEPT', demoEnabled: false },
+  { id: 'flight', category: 'Flights', title: 'Delhi to Bengaluru', subtitle: 'New Delhi → Bengaluru', date: 'THU, 11 FEB 2027', original: 6499, bid: 5199, bids: 0, ending: 'PREVIEW', code: 'UP IN THE AIR', tone: 'teal', tag: 'CONCEPT', demoEnabled: false }
 ];
-function Icon({category,size=25}:{category:Category,size?:number}){const p={size,strokeWidth:1.7};switch(category){case 'Trains':return <TrainFront {...p}/>;case 'Flights':return <Plane {...p}/>;case 'Buses':return <BusFront {...p}/>;case 'Movies':return <Clapperboard {...p}/>;case 'Concerts':return <Music2 {...p}/>;case 'Sports':return <Trophy {...p}/>}}
-function cash(n:number){return '₹'+n.toLocaleString('en-IN')}
-function timeLeft(ends:number,now:number|null){if(now===null)return 'Loading timer…';const s=Math.max(0,Math.floor((ends-now)/1000));return s?Math.floor(s/3600)+'h '+String(Math.floor(s%3600/60)).padStart(2,'0')+'m '+String(s%60).padStart(2,'0')+'s':'Auction ended'}
-export default function Home(){
- const [page,setPage]=useState<Page>('home');
- const [selected,setSelected]=useState<string>('');
- const [listings,setListings]=useState<Listing[]>(example);
- const [watch,setWatch]=useState<string[]>([]);
- const [myBids,setMyBids]=useState<string[]>([]);
- const [category,setCategory]=useState<string>('All');
- const [search,setSearch]=useState('');
- const [sort,setSort]=useState('ending');
- const [now,setNow]=useState<number|null>(null);
- const [loaded,setLoaded]=useState(false);
- const [alert,setAlert]=useState('');
- const [bidValue,setBidValue]=useState('');
- const [form,setForm]=useState({category:'Buses' as Category,title:'',venue:'',date:'',original:'',start:'',description:''});
- useEffect(()=>{try{const saved=localStorage.getItem('bmt-state-v1');if(saved){const parsed=JSON.parse(saved);if(Array.isArray(parsed.listings))setListings(parsed.listings);if(Array.isArray(parsed.watch))setWatch(parsed.watch);if(Array.isArray(parsed.myBids))setMyBids(parsed.myBids)}}catch{}setLoaded(true);const timer=setInterval(()=>setNow(Date.now()),1000);return ()=>clearInterval(timer)},[]);
- useEffect(()=>{if(loaded)localStorage.setItem('bmt-state-v1',JSON.stringify({listings,watch,myBids}))},[listings,watch,myBids,loaded]);
- const navigate=(p:Page,id?:string)=>{setPage(p);if(id)setSelected(id);setAlert('');setBidValue('');window.scrollTo({top:0,behavior:'smooth'})};
- const current=listings.find(t=>t.id===selected);
- const filtered=useMemo(()=>listings.filter(t=>(category==='All'||t.category===category)&&((t.title+' '+t.venue).toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>sort==='price'?a.highest-b.highest:sort==='highest'?b.highest-a.highest:a.ends-b.ends),[listings,category,search,sort]);
- const bid=(t:Listing)=>{const amount=Number(bidValue);const min=t.bids.length?t.highest+50:t.start;if(!t.eligible){setAlert('This ticket type is not approved for simulated bidding.');return}if(t.ends<=Date.now()){setAlert('This demo auction has ended.');return}if(!Number.isSafeInteger(amount)||amount<min){setAlert('Enter a whole-number bid of at least '+cash(min)+'.');return}if(amount>t.original){setAlert('This demo caps bidding at the original ticket price.');return}if(t.mine){setAlert('You cannot bid on your own listing.');return}setListings(all=>all.map(x=>x.id===t.id?{...x,highest:amount,bids:[...x.bids,amount]}:x));setMyBids(ids=>ids.includes(t.id)?ids:[...ids,t.id]);setBidValue('');setAlert('Demo bid placed! This is not a real offer or payment.')};
- const toggleWatch=(id:string)=>setWatch(w=>w.includes(id)?w.filter(x=>x!==id):[...w,id]);
- const create=(e:React.FormEvent<HTMLFormElement>)=>{e.preventDefault();const original=Number(form.original),start=Number(form.start);if(!form.title.trim()||!form.venue.trim()||!form.date||!Number.isFinite(original)||original<=0||!Number.isFinite(start)||start<=0||start>original){setAlert('Complete the required fields and enter valid prices.');return}if(new Date(form.date+'T23:59:59').getTime()<=Date.now()){setAlert('Choose a future event or travel date.');return}const id='mine-'+Date.now();const ticket:Listing={id,category:form.category,title:form.title.trim(),venue:form.venue.trim(),date:form.date,original,start,highest:start,bids:[],ends:Math.min(Date.now()+86400000,new Date(form.date+'T00:00:00').getTime()),eligible:false,description:form.description||'Awaiting eligibility review',mine:true};setListings(x=>[ticket,...x]);setForm({category:'Buses',title:'',venue:'',date:'',original:'',start:'',description:''});setAlert('Draft saved locally. It cannot accept bids until provider transfer eligibility is verified.');setPage('dashboard');window.scrollTo(0,0)};
- const card=(t:Listing)=><article className="ticket-card" key={t.id}><div className="ticket-art"><div className="ticket-icon"><Icon category={t.category} size={31}/></div><span className="tag">{t.category}</span></div><div className="ticket-body"><div className="mini"><MapPin size={13}/>{t.venue}</div><h3>{t.title}</h3><div className="ticket-meta"><CalendarDays size={14}/> {t.date}</div><div className="price-row"><div><span className="label">Current bid / starting price</span><div className="price">{cash(t.highest)}</div><span className="sub">Original {cash(t.original)}</span></div><div style={{textAlign:'right'}}><span className="label">Time left</span><strong style={{fontSize:13,color:'#e7d5b0'}}>{timeLeft(t.ends,now)}</strong></div></div><div className="ticket-foot"><span className="mini"><Gavel size={13}/>{t.bids.length} demo bids</span><span className={'tag '+(t.eligible?'demo':'')}>{t.eligible?'Demo auction':'Restricted'}</span></div><button className="btn btn-outline full" style={{marginTop:16}} onClick={()=>navigate('detail',t.id)}>View Ticket <ArrowRight size={16}/></button></div></article>;
- return <div className="site"><header className="topbar"><div className="container"><div className="nav"><button className="brand" onClick={()=>navigate('home')}><span className="brand-mark"><Ticket size={21}/></span>BidMyTicket</button><nav className="nav-links"><button className={page==='home'?'active':''} onClick={()=>navigate('home')}>Home</button><button className={page==='explore'?'active':''} onClick={()=>navigate('explore')}>Explore Auctions</button><button onClick={()=>navigate('how')}>How It Works</button><button onClick={()=>navigate('dashboard')}>Dashboard</button></nav><div className="nav-actions"><button className="btn btn-outline small" onClick={()=>navigate('login')}><UserRound size={16}/> Log in</button><button className="btn btn-gold small" onClick={()=>navigate('sell')}><Plus size={16}/> List Ticket</button></div></div><nav className="mobile-nav">{(['home','explore','how','dashboard','sell','login'] as Page[]).map(p=><button key={p} onClick={()=>navigate(p)}>{p==='how'?'How it works':p==='sell'?'Sell':p[0].toUpperCase()+p.slice(1)}</button>)}</nav></div></header>
- {page==='home'&&<><section className="hero"><div className="container"><div className="eyebrow"><Zap size={13}/> A smarter way to exchange eligible tickets</div><h1>Your Ticket.<br/><span className="gold">Their Opportunity.</span></h1><p>Plans changed? Turn eligible unused tickets into opportunities. Discover transparent auctions and competitive offers, all in one place.</p><div className="hero-actions"><button className="btn btn-gold" onClick={()=>navigate('explore')}>Explore Auctions <ArrowRight size={17}/></button><button className="btn btn-outline" onClick={()=>navigate('sell')}>List a Ticket <Plus size={17}/></button></div><div className="stats"><div><b>06</b><span>Ticket categories</span></div><div><b>80%</b><span>Suggested starting bid</span></div><div><b>100%</b><span>Fictitious demo listings</span></div></div></div></section><section className="section"><div className="container"><div className="section-head"><div><h2 className="section-title">Explore by category</h2><div className="sub">From travel to entertainment, explore what is possible.</div></div></div><div className="cat-grid">{categories.map(c=><button className="cat-card" key={c} onClick={()=>{setCategory(c);navigate('explore')}}><Icon category={c} size={31}/><span>{c}</span><small>View listings</small></button>)}</div></div></section><section className="section"><div className="container"><div className="section-head"><div><h2 className="section-title">Featured demo auctions</h2><div className="sub">Explore the prototype. No real tickets or payments.</div></div><button className="btn btn-ghost small" onClick={()=>{setCategory('All');navigate('explore')}}>View all <ArrowRight size={15}/></button></div><div className="cards">{listings.filter(t=>t.eligible).slice(0,3).map(card)}</div></div></section><section className="section"><div className="container"><div className="section-head"><div><h2 className="section-title">Simple. Transparent. Secure by design.</h2><div className="sub">Three steps from unused ticket to new opportunity.</div></div></div><div className="steps"><div className="panel"><span className="step-num">01 / LIST</span><h3>List an eligible ticket</h3><p className="sub">Share essential details. Provider approval is required for real listings.</p></div><div className="panel"><span className="step-num">02 / BID</span><h3>Let buyers compete</h3><p className="sub">Buyers submit increasing offers during a timed auction.</p></div><div className="panel"><span className="step-num">03 / TRANSFER</span><h3>Highest bid wins</h3><p className="sub">A real purchase would require payment and authorized transfer.</p></div></div></div></section></>}
- {page==='explore'&&<main className="container"><div className="page-header"><span className="eyebrow"><Search size={14}/> Discover opportunities</span><h1>Explore <span className="gold">Auctions</span></h1><p className="sub">Browse sample tickets across categories. Restricted tickets cannot be bid on.</p></div><div className="pills">{['All',...categories].map(c=><button className={'pill '+(category===c?'selected':'')} key={c} onClick={()=>setCategory(c)}>{c}</button>)}</div><div className="filters"><input className="field" placeholder="Search tickets or destinations…" value={search} onChange={e=>setSearch(e.target.value)} aria-label="Search listings"/><select className="field" value={sort} onChange={e=>setSort(e.target.value)} aria-label="Sort listings"><option value="ending">Ending soon</option><option value="price">Price: low to high</option><option value="highest">Price: high to low</option></select></div><div className="sub" style={{marginBottom:18}}>{filtered.length} sample listings</div>{filtered.length?<div className="cards">{filtered.map(card)}</div>:<div className="empty">No matching tickets found. Try another filter.</div>}</main>}
- {page==='detail'&&<main className="container">{current?<><div className="page-header"><button className="btn btn-ghost small" onClick={()=>navigate('explore')}><ArrowLeft size={15}/> Back to explore</button></div><div className="detail-grid"><div><div className="panel"><span className="tag">{current.category}</span><h1 className="detail-title">{current.title}</h1><div className="sub">{current.description}</div><div className="info-grid"><div><span className="label">Location / route</span><strong>{current.venue}</strong></div><div><span className="label">Event date</span><strong>{current.date}</strong></div><div><span className="label">Original ticket price</span><strong>{cash(current.original)}</strong></div><div><span className="label">Starting auction price</span><strong>{cash(current.start)}</strong></div></div></div><div className="panel" style={{marginTop:18}}><h2 className="section-title" style={{fontSize:22}}>Bid history</h2><div className="sub">Fictitious demo bids, newest first.</div><div className="bid-list">{current.bids.length?current.bids.slice().reverse().map((b,i)=><div className="bid-item" key={i}><span>Demo bidder {current.bids.length-i}</span><strong>{cash(b)}</strong></div>):<p className="sub">No bids yet.</p>}</div></div></div><aside className="panel"><span className="label">Current highest bid</span><div className="price" style={{fontSize:43}}>{cash(current.highest)}</div><div className="sub">Original: {cash(current.original)}</div><div className="notice" style={{marginTop:18}}><Clock3 size={15} style={{display:'inline',marginRight:7}}/>Time remaining: <strong>{timeLeft(current.ends,now)}</strong></div><div style={{marginTop:22}}><span className="label">Enter demo bid</span><input type="number" min="1" step="1" className="field" value={bidValue} onChange={e=>setBidValue(e.target.value)} placeholder={'Minimum '+cash(current.bids.length?current.highest+50:current.start)} disabled={!current.eligible||current.ends<=(now ?? 0)||!!current.mine}/></div><p className="sub">Demo increment: ₹50. Maximum: original price.</p><button className="btn btn-gold full" disabled={!current.eligible||current.ends<=(now ?? 0)||!!current.mine} onClick={()=>bid(current)}><Gavel size={17}/> Place Demo Bid</button><button className="btn btn-outline full" style={{marginTop:10}} onClick={()=>toggleWatch(current.id)}><Heart size={16} fill={watch.includes(current.id)?'currentColor':'none'}/>{watch.includes(current.id)?'Remove from watchlist':'Add to watchlist'}</button>{alert&&<div className={'notice '+(alert.startsWith('Demo bid')?'success':'error')} style={{marginTop:13}} role="status">{alert}</div>}<p className="sub" style={{marginTop:20}}>Demo only. No payment or binding offer. Real resale requires provider approval and authorized transfer.</p></aside></div></>:<div className="empty">Ticket not found. <button className="btn btn-outline" onClick={()=>navigate('explore')}>Explore tickets</button></div>}</main>}
- {page==='sell'&&<main className="container"><div className="page-header"><span className="eyebrow"><Plus size={14}/> Seller studio</span><h1>List your <span className="gold">ticket</span></h1><p className="sub">Save a draft for demonstration. A real listing requires provider transfer eligibility and verification.</p></div><div className="panel" style={{maxWidth:760,margin:'0 auto'}}><form onSubmit={create} className="form-grid"><div className="form-field"><label>Ticket category *</label><select className="field" value={form.category} onChange={e=>setForm({...form,category:e.target.value as Category})}>{categories.map(c=><option key={c}>{c}</option>)}</select></div><div className="form-field"><label>Event / travel date *</label><input type="date" className="field" required value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></div><div className="form-field span"><label>Ticket title *</label><input className="field" maxLength={90} placeholder="e.g. Bhopal to Indore Sleeper" required value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></div><div className="form-field span"><label>City / route / venue *</label><input className="field" maxLength={120} placeholder="e.g. Bhopal • Indore" required value={form.venue} onChange={e=>setForm({...form,venue:e.target.value})}/></div><div className="form-field"><label>Original price (₹) *</label><input type="number" min="1" max="1000000" className="field" required value={form.original} onChange={e=>{const original=e.target.value;setForm({...form,original,start:original?String(Math.round(Number(original)*0.8)) : ''})}}/></div><div className="form-field"><label>Suggested starting bid (₹) *</label><input type="number" min="1" className="field" required value={form.start} onChange={e=>setForm({...form,start:e.target.value})}/></div><div className="form-field span"><label>Additional details</label><textarea className="field" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Add general information. Do not enter personal details, PNRs, QR codes, or booking secrets."/></div><div className="form-field span"><div className="notice"><ShieldCheck size={16} style={{display:'inline',marginRight:8}}/>All newly created listings are saved as restricted drafts in this demo. They cannot accept bids or transfer tickets.</div></div><div className="form-field span"><button className="btn btn-gold full" type="submit">Save Demo Listing <ArrowRight size={16}/></button></div>{alert&&<div className="form-field span"><div className="notice error" role="status">{alert}</div></div>}</form></div></main>}
- {page==='dashboard'&&<main className="container"><div className="page-header"><span className="eyebrow"><TrendingUp size={14}/> Your workspace</span><h1>Demo <span className="gold">Dashboard</span></h1><p className="sub">Browser-local data. No account or payment information is stored.</p></div>{alert&&<div className="notice success" style={{marginBottom:20}}>{alert}</div>}<div className="dash-grid"><div className="metric"><span className="sub">My sample listings</span><strong>{listings.filter(t=>t.mine).length}</strong></div><div className="metric"><span className="sub">Auctions bid on</span><strong>{myBids.length}</strong></div><div className="metric"><span className="sub">Watchlist</span><strong>{watch.length}</strong></div></div><section className="section"><div className="section-head"><h2 className="section-title">My Listings</h2><button className="btn btn-gold small" onClick={()=>navigate('sell')}>New listing <Plus size={15}/></button></div>{listings.some(t=>t.mine)?<div className="cards">{listings.filter(t=>t.mine).map(card)}</div>:<div className="empty">No demo listings created yet. Save your first draft!</div>}</section><section className="section"><h2 className="section-title">My Demo Bids</h2><div className="cards">{listings.filter(t=>myBids.includes(t.id)).map(card)}</div>{!myBids.length&&<div className="empty">No bids yet. <button className="btn btn-outline small" onClick={()=>navigate('explore')}>Explore auctions</button></div>}</section><section className="section"><h2 className="section-title">Watchlist</h2><div className="cards">{listings.filter(t=>watch.includes(t.id)).map(card)}</div>{!watch.length&&<div className="empty">Your watchlist is empty.</div>}</section></main>}
- {page==='how'&&<main className="container"><div className="page-header"><span className="eyebrow"><ShieldCheck size={14}/> How it works</span><h1>Make every ticket <span className="gold">count.</span></h1><p className="sub">The auction concept, from listing to an authorized transfer.</p></div><div className="steps"><div className="panel"><span className="step-num">STEP 01</span><h3>List your eligible ticket</h3><p className="sub">Enter ticket details. A real marketplace must verify authenticity and whether the provider permits transfer.</p></div><div className="panel"><span className="step-num">STEP 02</span><h3>Open bidding</h3><p className="sub">The starting bid defaults to 80% of face value. Participants bid upward during a set period.</p></div><div className="panel"><span className="step-num">STEP 03</span><h3>Complete safely</h3><p className="sub">The highest valid bid wins. Real payments and transfers require provider-approved infrastructure.</p></div></div><div className="notice" style={{marginTop:22}}>This prototype does not verify real tickets, transfer ownership, or process any payment.</div></main>}
- {(page==='login'||page==='signup')&&<main className="container"><div className="page-header" style={{textAlign:'center'}}><span className="eyebrow"><UserRound size={13}/> Account demo</span><h1>{page==='login'?'Welcome':'Join'} <span className="gold">BidMyTicket</span></h1></div><div className="panel" style={{maxWidth:470,margin:'0 auto'}}><div className="notice">Authentication is not enabled in this frontend prototype. Do not enter real passwords or personal details.</div><div style={{marginTop:20}}><button className="btn btn-gold full" onClick={()=>navigate('dashboard')}>Continue to Demo Dashboard <ArrowRight size={16}/></button><button style={{marginTop:10}} className="btn btn-outline full" onClick={()=>navigate(page==='login'?'signup':'login')}>{page==='login'?'View signup screen':'View login screen'}</button></div></div></main>}
- <footer className="footer"><div className="container footer-inner"><span>© BidMyTicket · Prototype only · No real ticket sales</span><span>Built for transparent, authorized ticket exchanges <CheckCircle2 size={13} style={{display:'inline'}}/></span></div></footer></div>
+const money = (n: number) => '₹' + n.toLocaleString('en-IN');
+
+function TicketIcon({ category, size = 24 }: { category: Category; size?: number }) {
+  const Icon = icons[category]; return <Icon size={size} strokeWidth={1.65} />;
+}
+
+function TicketCard({ ticket, onPreview }: { ticket: TicketSample; onPreview: (ticket: TicketSample) => void }) {
+  return (
+    <article className="ticket-card">
+      <div className={'ticket-cover tone-' + ticket.tone}>
+        <div className="cover-topline"><span>BM<span className="cover-star">✦</span>T ORIGINALS</span><span className="cover-status">{ticket.tag}</span></div>
+        <div className="cover-graphic"><TicketIcon category={ticket.category} size={69} /></div>
+        <div className="cover-bottomline"><span>{ticket.code}</span><span>NO. 0{categories.indexOf(ticket.category)+1}</span></div>
+      </div>
+      <div className="ticket-content">
+        <div className="ticket-kind"><TicketIcon category={ticket.category} size={15} /> {ticket.category}<span className="ticket-date">{ticket.date}</span></div>
+        <h3>{ticket.title}</h3>
+        <p className="ticket-location"><MapPin size={14} />{ticket.subtitle}</p>
+        <div className="ticket-rule" />
+        <div className="ticket-price-row">
+          <div><span className="overline">ILLUSTRATIVE BID</span><strong>{money(ticket.bid)}</strong></div>
+          <div className="price-right"><span className="overline">ORIGINAL PRICE</span><s>{money(ticket.original)}</s></div>
+        </div>
+        <div className="ticket-bottom">
+          <div className="ticket-small"><Clock3 size={14}/>{ticket.demoEnabled ? ticket.ending + ' left' : 'Preview only'}</div>
+          <button className="card-action" onClick={() => onPreview(ticket)} aria-label={'Preview '+ticket.title}>View preview <ArrowUpRight size={16}/></button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export default function Home() {
+  const [category, setCategory] = useState<Category | 'All'>('All');
+  const [selected, setSelected] = useState<TicketSample | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [sampleBids, setSampleBids] = useState<Record<string, number>>({});
+  const [liked, setLiked] = useState<string[]>([]);
+  const [seconds, setSeconds] = useState(0);
+  const visible = useMemo(() => category === 'All' ? tickets : tickets.filter(t => t.category === category), [category]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setSeconds(s => s + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    if (!selected) return;
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setSelected(null); };
+    document.addEventListener('keydown', close);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', close); document.body.style.overflow = previous; };
+  }, [selected]);
+
+  const currentBid = (ticket: TicketSample) => Math.min(ticket.original, ticket.bid + (sampleBids[ticket.id] ?? 0) * 50);
+  const closeMenu = () => setMenuOpen(false);
+  const openTicket = (ticket: TicketSample) => setSelected(ticket);
+  const tryBid = (ticket: TicketSample) => {
+    if (!ticket.demoEnabled) return;
+    setSampleBids(previous => ({ ...previous, [ticket.id]: (previous[ticket.id] ?? 0) + 1 }));
+  };
+  const toggleHeart = (id: string) => setLiked(previous => previous.includes(id) ? previous.filter(x => x !== id) : [...previous, id]);
+
+  return (
+    <div className="site">
+      <div className="announcement"><span className="announce-sparkle">✦</span> THIS IS A CONCEPT EXPERIENCE <span className="announce-separator">/</span> NO SIGN-UP. NO REAL TICKETS. JUST THE IDEA.</div>
+      <header className="site-header">
+        <div className="shell nav-shell">
+          <a href="#top" className="brand" onClick={closeMenu} aria-label="BidMyTicket home"><span className="brand-icon"><Ticket size={23} strokeWidth={1.9}/></span><span>BID<span className="brand-gold">MY</span>TICKET<span className="brand-period">.</span></span></a>
+          <nav className={'nav-links '+(menuOpen ? 'open' : '')} aria-label="Main navigation">
+            <a href="#explore" onClick={closeMenu}>Explore tickets</a>
+            <a href="#how" onClick={closeMenu}>How it works</a>
+            <a href="#why" onClick={closeMenu}>The idea</a>
+            <a className="mobile-nav-cta" href="#explore" onClick={closeMenu}>Explore concept <ArrowUpRight size={15}/></a>
+          </nav>
+          <div className="nav-right"><span className="top-demo-label"><span className="status-dot"/> INTERACTIVE DEMO</span><a className="nav-cta" href="#explore">Explore concept <ArrowUpRight size={17}/></a></div>
+          <button className="menu-toggle" type="button" onClick={()=>setMenuOpen(x=>!x)} aria-label={menuOpen?'Close menu':'Open menu'} aria-expanded={menuOpen}>{menuOpen?<X size={24}/>:<Menu size={24}/>}</button>
+        </div>
+      </header>
+
+      <main id="top">
+        <section className="hero-section">
+          <div className="hero-sheen" aria-hidden="true" />
+          <div className="shell hero-layout">
+            <div className="hero-copy">
+              <div className="section-kicker"><span className="kicker-line"/> REIMAGINING THE TICKET EXPERIENCE</div>
+              <h1>Every ticket<br/>deserves a<br/><em>second chance.</em></h1>
+              <p className="hero-description">Plans change. Great experiences shouldn’t go to waste. Discover a more exciting way to explore unused tickets, powered by the thrill of an auction.</p>
+              <div className="hero-buttons"><a className="button button-gold" href="#explore">Explore the demo <ArrowUpRight size={19}/></a><a className="button button-quiet" href="#how"><CirclePlay size={20}/> How it works</a></div>
+              <div className="hero-proof"><div className="proof-avatars"><span>A</span><span>B</span><span>M</span></div><p><strong>Made to be explored.</strong><br/>No account. No payment. Just possibilities.</p></div>
+            </div>
+            <div className="hero-art" aria-label="Decorative preview of a sample ticket auction">
+              <div className="halo halo-one"/><div className="halo halo-two"/><div className="hero-tiny-star tiny-one">✦</div><div className="hero-tiny-star tiny-two">✧</div>
+              <div className="float-chip float-chip-top"><span className="live-pulse"/> <span>AUCTION CONCEPT</span><span className="float-chip-tiny">01 / 06</span></div>
+              <div className="ticket-stack-back"/>
+              <div className="hero-ticket">
+                <div className="hero-ticket-top"><span className="tiny-brand"><Ticket size={18}/> BIDMYTICKET</span><span>BOARDING PASS · DEMO</span></div>
+                <div className="hero-route"><div><strong>BHO</strong><small>BHOPAL</small></div><div className="route-connector"><Plane size={26}/><span/></div><div><strong>BOM</strong><small>MUMBAI</small></div></div>
+                <div className="hero-ticket-info"><div><span>EXPERIENCE</span><b>THE NEXT JOURNEY</b></div><div><span>CLASS</span><b>GOLD</b></div></div>
+                <div className="perforation"><span/><span className="dash-line"/><span/></div>
+                <div className="hero-ticket-footer"><div><span>STARTING BID</span><strong>₹2,400</strong></div><div className="barcode" aria-hidden="true"/><div className="gold-stamp">BMT<br/>✦</div></div>
+              </div>
+              <div className="float-chip float-chip-bottom"><div className="mini-rise"><ArrowUpRight size={21}/></div><div><strong>What if tickets had a second life?</strong><small>A fresh way to think about resale.</small></div></div>
+            </div>
+          </div>
+          <div className="hero-side-note">SCROLL TO EXPLORE <ArrowDownRight size={14}/></div>
+        </section>
+
+        <div className="category-ribbon" aria-label="Ticket categories"><div className="ribbon-track">{[...categories,...categories].map((cat,i)=><span key={i}>✦ <b>{cat.toUpperCase()}</b></span>)}</div></div>
+
+        <section id="explore" className="market-section section-space">
+          <div className="shell">
+            <div className="section-heading"><div><div className="section-kicker"><span className="kicker-line"/> THE MARKETPLACE</div><h2>Find your <em>next moment.</em></h2><p>Flights, films, front-row energy. Take a peek at the possibilities.</p></div><span className="section-counter">01 <span>/</span> 03</span></div>
+            <div className="market-toolbar"><div className="category-filter" role="group" aria-label="Filter ticket category"><button className={category==='All'?'active':''} onClick={()=>setCategory('All')}>All tickets</button>{categories.map(cat=><button key={cat} className={category===cat?'active':''} onClick={()=>setCategory(cat)}><TicketIcon category={cat} size={15}/>{cat}</button>)}</div><span className="results-count">{visible.length.toString().padStart(2,'0')} COLLECTION ITEMS</span></div>
+            <div className="listing-grid">{visible.map(ticket=><TicketCard key={ticket.id} ticket={ticket} onPreview={openTicket}/>)}</div>
+            <p className="market-note"><ShieldCheck size={16}/> All listings and prices are fictional examples. Some categories may prohibit resale or transfer in the real world.</p>
+          </div>
+        </section>
+
+        <section id="how" className="how-section section-space">
+          <div className="shell"><div className="section-heading"><div><div className="section-kicker"><span className="kicker-line"/> THE EXPERIENCE</div><h2>Simple by design.<br/><em>Exciting by nature.</em></h2></div><span className="section-counter">02 <span>/</span> 03</span></div>
+            <div className="steps-grid">
+              <div className="step-card"><div className="step-top"><span>01</span><Ticket size={28}/></div><div className="step-main"><h3>A ticket becomes available</h3><p>Imagine someone’s plans changing. Their eligible ticket could find a new purpose instead of going unused.</p></div><span className="step-foot">THE OPPORTUNITY <ArrowUpRight size={17}/></span></div>
+              <div className="step-card"><div className="step-top"><span>02</span><Gavel size={28}/></div><div className="step-main"><h3>People join the auction</h3><p>Interested buyers place increasing bids. The countdown adds energy, while the pricing stays clear.</p></div><span className="step-foot">THE EXCITEMENT <ArrowUpRight size={17}/></span></div>
+              <div className="step-card"><div className="step-top"><span>03</span><Sparkles size={28}/></div><div className="step-main"><h3>The highest bid wins</h3><p>The top eligible bidder gets the opportunity, subject to permitted transfer rules in any real product.</p></div><span className="step-foot">THE HAPPY ENDING <ArrowUpRight size={17}/></span></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="why" className="vision-section">
+          <div className="shell vision-grid"><div className="vision-copy"><div className="section-kicker dark-kicker"><span className="kicker-line"/> WHY BIDMYTICKET?</div><h2>Less waste.<br/>More <em>wonder.</em></h2><p>An unused ticket isn’t the end of the story. It’s a chance for someone else’s story to begin.</p><a className="button button-black" href="#explore">Explore the concept <ArrowUpRight size={18}/></a></div>
+            <div className="vision-card"><div className="vision-caption"><Sparkles size={19}/> AN ILLUSTRATIVE EXAMPLE</div><div className="vision-stat"><span>Original ticket</span><s>₹2,000</s></div><div className="vision-stat"><span>Sample starting bid (80%)</span><strong>₹1,600</strong></div><div className="vision-line"/><div className="vision-win"><span>What could a winning bid look like?</span><strong>₹1,850 <ArrowUpRight size={21}/></strong></div><p>Conceptual figures only. Not a financial promise or real resale offer.</p></div>
+          </div>
+        </section>
+
+        <section className="faq-section section-space" id="faq"><div className="shell faq-grid"><div><div className="section-kicker"><span className="kicker-line"/> GOOD TO KNOW</div><h2>Curious?<br/><em>We thought so.</em></h2><p className="faq-intro">A few quick answers about what you’re looking at.</p></div><div className="faq-list"><details><summary>Can I actually buy or sell a ticket here? <ChevronDown size={20}/></summary><p>Not yet. This is a visual concept website with fictional listings and an optional interactive auction preview. No transactions happen here.</p></details><details><summary>Do I need an account to explore? <ChevronDown size={20}/></summary><p>No. There are no logins, registration forms, or personal ticket submissions on this demo site.</p></details><details><summary>How does the auction preview work? <ChevronDown size={20}/></summary><p>Choose a ticket marked interactive demo and try increasing the sample bid. The amount changes only on your screen and resets on refresh.</p></details><details><summary>Can every ticket be transferred? <ChevronDown size={20}/></summary><p>No. Providers set their own transfer and resale rules. Train and flight tickets are often non-transferable. Any future real marketplace would need to enforce these restrictions.</p></details></div></div></section>
+
+        <section className="final-banner"><div className="shell final-content"><div className="final-star">✦</div><div className="section-kicker final-kicker">THIS IS JUST THE BEGINNING</div><h2>Good stories deserve<br/><em>an encore.</em></h2><p>Explore the idea. Imagine the possibilities. One ticket, a whole new story.</p><a href="#explore" className="button button-gold">See the demo tickets <ArrowUpRight size={19}/></a></div></section>
+      </main>
+      <footer className="footer"><div className="shell footer-top"><a className="brand footer-brand" href="#top"><span className="brand-icon"><Ticket size={21}/></span><span>BID<span className="brand-gold">MY</span>TICKET<span className="brand-period">.</span></span></a><div className="footer-links"><a href="#explore">Explore</a><a href="#how">How it works</a><a href="#why">Our idea</a><a href="#faq">FAQ</a></div></div><div className="shell footer-bottom"><span>© 2026 BIDMYTICKET. BUILT TO REIMAGINE THE POSSIBLE.</span><span>AN INTERACTIVE DESIGN CONCEPT · NOT A BOOKING PLATFORM</span></div></footer>
+
+      {selected && <div className="modal-backdrop" onMouseDown={(e)=>{if(e.target===e.currentTarget)setSelected(null);}}><section role="dialog" aria-modal="true" aria-labelledby="preview-title" className="preview-modal"><button className="modal-close" onClick={()=>setSelected(null)} aria-label="Close preview"><X size={21}/></button><span className="modal-kicker"><span className="status-dot"/> TICKET CONCEPT / NO REAL TRANSACTION</span><div className="modal-top"><div className={'modal-symbol tone-'+selected.tone}><TicketIcon category={selected.category} size={42}/></div><div><span className="modal-category">{selected.category} · {selected.date}</span><h2 id="preview-title">{selected.title}</h2><p>{selected.subtitle}</p></div></div><div className="modal-price-panel"><div><span>Sample highest bid</span><strong>{money(currentBid(selected))}</strong></div><span className="modal-price-comparison">Original {money(selected.original)}</span></div><div className="modal-meta"><div><span><Gavel size={15}/> Sample bids</span><strong>{selected.bids+(sampleBids[selected.id]??0)}</strong></div><div><span><Clock3 size={15}/> Concept auction</span><strong>{selected.demoEnabled ? (seconds%2===0?'ACTIVE DEMO':'TRY A BID') : 'PREVIEW ONLY'}</strong></div></div>{selected.demoEnabled?<><button className="button button-gold modal-bid" onClick={()=>tryBid(selected)} disabled={currentBid(selected)+50>selected.original}>Try a sample bid <ArrowUpRight size={18}/> <span>+ ₹50</span></button><button className={'save-preview '+(liked.includes(selected.id)?'saved':'')} onClick={()=>toggleHeart(selected.id)}><Heart size={17} fill={liked.includes(selected.id)?'currentColor':'none'}/>{liked.includes(selected.id)?'Saved to this demo session':'Save to this demo session'}</button></>:<div className="modal-restricted"><ShieldCheck size={20}/> This category is shown for illustration only. Real-world transfer rules may restrict resale.</div>}<p className="modal-disclaimer">This is a design simulation only. No account, payment, sale, reservation, or ticket transfer takes place. Nothing is saved to a database.</p></section></div>}
+    </div>
+  );
 }

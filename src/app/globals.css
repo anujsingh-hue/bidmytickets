@@ -94,3 +94,50 @@ a { color:inherit; }
 .mobile-nav { display:none; }
 @media(max-width:900px){.nav-links { gap:10px; }.cat-grid{grid-template-columns:repeat(3,1fr)}.cards{grid-template-columns:repeat(2,1fr)}.detail-grid{grid-template-columns:1fr}.stats{gap:24px}}
 @media(max-width:650px){.container{padding:0 17px}.nav{min-height:67px}.brand{font-size:19px}.nav-links{display:none}.nav-actions .btn-outline{display:none}.mobile-nav{display:flex; gap:8px; overflow:auto; padding-bottom:12px}.mobile-nav button{border:1px solid #473b2b; padding:8px 12px; border-radius:99px; font-size:12px; white-space:nowrap; background:#1a1816;color:#e7d7b8}.hero{padding:65px 0 40px}.hero h1{letter-spacing:-1.9px}.hero p{font-size:15px}.stats{gap:18px;flex-wrap:wrap}.section{padding:33px 0}.section-title{font-size:24px}.cat-grid{grid-template-columns:repeat(3,1fr);gap:8px}.cat-card{min-height:118px;padding:17px 5px}.cards{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.form-field.span{grid-column:auto}.dash-grid,.steps{grid-template-columns:1fr}.page-header h1{font-size:32px}.filters select{max-width:none}.detail-title{font-size:28px}.panel{padding:19px}.section-head{align-items:start}}
+
+
+/* Responsive tablet navigation and narrower phone refinements.
+   Keep navigation reachable without forcing the desktop links to overflow. */
+@media (max-width: 1080px) {
+  .nav-links { display: none; }
+  .mobile-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding-bottom: 12px;
+  }
+  .mobile-nav::-webkit-scrollbar { display: none; }
+  .mobile-nav button {
+    flex: 0 0 auto;
+    min-height: 40px;
+    border: 1px solid #473b2b;
+    padding: 8px 14px;
+    border-radius: 99px;
+    font-size: 13px;
+    white-space: nowrap;
+    background: #1a1816;
+    color: #e7d7b8;
+  }
+  .nav-actions { gap: 8px; }
+}
+@media (max-width: 650px) {
+  .section-head { flex-wrap: wrap; }
+  .hero h1 { font-size: clamp(35px, 10vw, 55px); overflow-wrap: break-word; }
+  .eyebrow { max-width: 100%; font-size: 10px; letter-spacing: .7px; white-space: normal; }
+  .price-row { align-items: flex-start; }
+  .ticket-foot { flex-wrap: wrap; gap: 8px; }
+  .field, .btn, .pill { min-height: 42px; }
+  .nav-actions .btn-gold { padding: 9px 11px; }
+  .footer-inner { flex-direction: column; }
+}
+@media (max-width: 380px) {
+  .brand { font-size: 16px; gap: 6px; }
+  .brand-mark { width: 29px; height: 29px; }
+  .nav { gap: 6px; }
+  .nav-actions .btn-gold { font-size: 11px; padding: 8px; gap: 5px; }
+  .nav-actions .btn-gold svg { width: 14px; }
+  .stats { gap: 12px; }
+  .price { font-size: 22px; }
+}

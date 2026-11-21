@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowDownRight, ArrowUpRight, BusFront, ChevronDown, CirclePlay,
+  ArrowDownRight, ArrowUpRight, BusFront, CheckCircle2, ChevronDown, CirclePlay,
   Clapperboard, Clock3, Gavel, Heart, MapPin, Menu, Music2, Plane,
-  ShieldCheck, Sparkles, Ticket, TrainFront, Trophy, X
+  RotateCcw, ShieldCheck, Sparkles, Ticket, TrainFront, Trophy, X
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -62,10 +62,168 @@ function TicketCard({ ticket, onPreview }: { ticket: TicketSample; onPreview: (t
         </div>
         <div className="ticket-bottom">
           <div className="ticket-small"><Clock3 size={14}/>{ticket.demoEnabled ? ticket.ending + ' left' : 'Preview only'}</div>
-          <button className="card-action" onClick={() => onPreview(ticket)} aria-label={'Preview '+ticket.title}>View preview <ArrowUpRight size={16}/></button>
+          <button className="card-action" onClick={() => onPreview(ticket)} aria-label={ticket.demoEnabled ? 'Enter bidding arena for '+ticket.title : 'Preview '+ticket.title}>{ticket.demoEnabled?'Enter arena':'View concept'} <ArrowUpRight size={16}/></button>
         </div>
       </div>
     </article>
+  );
+}
+
+
+const BID_STEP = 50;
+
+function BiddingArena({ ticket, onClose }: { ticket: TicketSample; onClose: () => void }) {
+  const [placedBids, setPlacedBids] = useState<number[]>([]);
+  const [offer, setOffer] = useState(String(ticket.bid + BID_STEP));
+  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(() => {
+    const duration = ticket.ending.match(/(\d+)h\s+(\d+)m/);
+    return duration ? (Number(duration[1]) * 60 + Number(duration[2])) * 60 : 0;
+  });
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const current = placedBids.length ? placedBids[placedBids.length - 1] : ticket.bid;
+  const minBid = current + BID_STEP;
+  const atLimit = minBid > ticket.original;
+  const ended = secondsLeft <= 0 && ticket.demoEnabled;
+  const count = ticket.bids + placedBids.length;
+  const suggested = [minBid, minBid + 50, minBid + 150].filter(amount => amount <= ticket.original);
+  const offerNumber = Number(offer);
+  const validOffer = /^\d+$/.test(offer.trim()) && Number.isSafeInteger(offerNumber) &&
+    offerNumber >= minBid && offerNumber <= ticket.original;
+  const timerText = String(Math.floor(secondsLeft / 3600)).padStart(2, '0') + ':' +
+    String(Math.floor((secondsLeft % 3600) / 60)).padStart(2, '0') + ':' +
+    String(secondsLeft % 60).padStart(2, '0');
+
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose(); return; }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusables = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not(:disabled), input:not(:disabled), [tabindex]:not([tabindex="-1"])'
+      )).filter(element => element.getClientRects().length > 0);
+      if (!focusables.length) return;
+      const first = focusables[0], last = focusables[focusables.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', keydown);
+    return () => {
+      document.removeEventListener('keydown', keydown);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!ticket.demoEnabled) return;
+    const interval = window.setInterval(() => setSecondsLeft(time => Math.max(0, time - 1)), 1000);
+    return () => window.clearInterval(interval);
+  }, [ticket.demoEnabled]);
+
+  function placeBid() {
+    if (!ticket.demoEnabled || ended || atLimit) return;
+    if (!validOffer) {
+      setFeedback({ kind: 'error', text: 'Enter a whole-rupee amount between ' + money(minBid) + ' and ' + money(ticket.original) + '.' });
+      return;
+    }
+    setPlacedBids(previous => [...previous, offerNumber]);
+    setFeedback({ kind: 'success', text: 'Your ' + money(offerNumber) + ' demo bid is now leading this simulated auction.' });
+    setOffer(String(offerNumber + BID_STEP));
+  }
+
+  function resetDemo() {
+    setPlacedBids([]);
+    setOffer(String(ticket.bid + BID_STEP));
+    setFeedback(null);
+    setSaved(false);
+  }
+
+  const timeline = [
+    ...placedBids.map((amount, index) => ({ amount, label: 'You · demo visitor', when: index === placedBids.length - 1 ? 'JUST NOW' : 'EARLIER THIS SESSION', yours: true })).reverse(),
+    ...[0, 1, 2].map((index) => ({
+      amount: ticket.bid - index * 70,
+      label: ['Demo bidder C', 'Demo bidder B', 'Demo bidder A'][index],
+      when: ['2 MIN AGO', '5 MIN AGO', '8 MIN AGO'][index],
+      yours: false
+    }))
+  ];
+
+  return (
+    <div className="modal-backdrop arena-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
+      <section ref={dialogRef} className="arena" role="dialog" aria-modal="true" aria-labelledby="arena-title" aria-describedby="arena-disclaimer">
+        <div className="arena-topbar">
+          <div className="arena-heading-small"><span className="arena-monogram">B<span>✦</span>T</span><span>THE BIDMYTICKET EXPERIENCE <small> / AUCTION ARENA 01</small></span></div>
+          <button type="button" ref={closeRef} className="arena-close" onClick={onClose} aria-label="Close bidding arena"><X size={20}/></button>
+        </div>
+        <div className="arena-layout">
+          <div className="arena-left">
+            <div className={'arena-art tone-' + ticket.tone}>
+              <div className="arena-art-top"><span>✦ BMT ORIGINALS</span><span className="arena-art-tag">{ticket.demoEnabled ? 'SIMULATION ONLY' : 'CONCEPT PREVIEW'}</span></div>
+              <div className="arena-art-symbol"><TicketIcon category={ticket.category} size={89}/></div>
+              <div className="arena-art-bottom"><span>{ticket.code}</span><span>VOL. 001 / {ticket.category.toUpperCase()}</span></div>
+            </div>
+            <div className="arena-about">
+              <div className="arena-eyebrow">FEATURED EXPERIENCE <span>·</span> {ticket.category.toUpperCase()}</div>
+              <h2 id="arena-title">{ticket.title}</h2>
+              <p><MapPin size={14}/>{ticket.subtitle} <span>·</span> {ticket.date}</p>
+            </div>
+            <div className="arena-stats">
+              <div><span>ORIGINAL PRICE</span><strong>{money(ticket.original)}</strong></div>
+              <div><span>SUGGESTED START</span><strong>{money(Math.round(ticket.original * 0.8))}</strong></div>
+              <div><span>DEMO BIDS</span><strong>{count.toString().padStart(2,'0')}</strong></div>
+            </div>
+            <div className="arena-note"><ShieldCheck size={17}/><span>Fictional listings. This experience does not verify tickets, collect information or process payments.</span></div>
+          </div>
+          <div className="arena-right">
+            <div className="arena-status"><span><span className="live-pulse"/> {ticket.demoEnabled ? 'INTERACTIVE AUCTION DEMO' : 'DISPLAY-ONLY CONCEPT'}</span><span>NO SIGN-UP NEEDED</span></div>
+            <div className="arena-current">
+              <div className="arena-overline">CURRENT HIGHEST DEMO BID</div>
+              <div className="arena-current-row"><strong key={current} className="arena-current-number">{money(current)}</strong><div className="arena-price-up"><ArrowUpRight size={16}/> EXAMPLE</div></div>
+              <div className="arena-price-sub">Compared with original price <s>{money(ticket.original)}</s></div>
+            </div>
+            <div className="arena-timebar">
+              <div><span className="arena-time-label"><Clock3 size={16}/> SIMULATED TIME REMAINING</span><strong data-testid="arena-timer">{ticket.demoEnabled ? timerText : 'NOT AVAILABLE'}</strong></div>
+              <div className="arena-progress"><span style={{ width: ticket.demoEnabled ? Math.max(0, Math.min(100, secondsLeft / (3 * 3600) * 100)) + '%' : '0%' }}/></div>
+            </div>
+            {ticket.demoEnabled ? <>
+              <div className="arena-bid-form">
+                <div className="arena-block-title"><span>01 / PLACE YOUR DEMO BID</span><span className="arena-step">+ {money(BID_STEP)} MIN. INCREMENT</span></div>
+                <div className="arena-suggested" role="group" aria-label="Suggested sample bid amounts">
+                  {suggested.map(amount => <button type="button" key={amount} className={'arena-chip ' + (offer === String(amount) ? 'chosen' : '')} onClick={() => { setOffer(String(amount)); setFeedback(null); }}>{money(amount)}</button>)}
+                </div>
+                <label className="arena-input-label" htmlFor="bid-amount">Or enter your own amount</label>
+                <div className="arena-input-wrap"><span>₹</span><input id="bid-amount" name="bid-amount" type="number" inputMode="numeric" min={minBid} max={ticket.original} step="1" value={offer} onChange={event => { setOffer(event.target.value); setFeedback(null); }} placeholder="Enter amount" disabled={atLimit || ended}/><span>INR</span></div>
+                <div className="arena-range"><span>Minimum next bid: {money(minBid)}</span><span>Demo cap: {money(ticket.original)}</span></div>
+                <button className="arena-submit" type="button" onClick={placeBid} disabled={atLimit || ended}>
+                  <Gavel size={19}/>{atLimit ? 'Demo price ceiling reached' : ended ? 'Simulation finished' : 'Place demo bid'}<ArrowUpRight size={18}/>
+                </button>
+                {feedback && <div className={'arena-feedback ' + feedback.kind} role="status">{feedback.kind === 'success' ? <CheckCircle2 size={18}/> : <X size={18}/>}<span>{feedback.text}</span></div>}
+                {atLimit && !feedback && <div className="arena-feedback success" role="status"><CheckCircle2 size={18}/>The next bid would exceed this demo’s original ticket price.</div>}
+              </div>
+              <div className="arena-bid-footer">
+                <button className={'arena-save ' + (saved ? 'is-saved' : '')} type="button" onClick={() => setSaved(value => !value)}><Heart size={15} fill={saved ? 'currentColor' : 'none'}/>{saved ? 'Saved for this session' : 'Save for this session'}</button>
+                <button className="arena-reset" type="button" onClick={resetDemo}><RotateCcw size={14}/>Reset simulation</button>
+              </div>
+              <div className="arena-history">
+                <div className="arena-block-title"><span>02 / SAMPLE BID HISTORY</span><span>{count} TOTAL DEMO BIDS</span></div>
+                <ol>{timeline.map((item, index) => <li key={item.yours ? 'your-' + index : 'seed-' + index} className={item.yours ? 'own-bid' : ''}>
+                  <span className="arena-avatar">{item.yours ? 'YOU' : 'D' + (3 - index + placedBids.length)}</span>
+                  <span className="arena-history-person"><strong>{item.label}</strong><small>{item.when}</small></span>
+                  <strong className="arena-history-amount">{money(item.amount)}</strong>
+                </li>)}</ol>
+              </div>
+            </> : <div className="arena-restricted"><ShieldCheck size={22}/><div><strong>This is a visual-only ticket category.</strong><p>Real transfers may be limited by the railway, airline, cinema or organizer. Bidding controls are intentionally unavailable in this concept.</p></div></div>}
+            <p className="arena-disclaimer" id="arena-disclaimer">DESIGN SIMULATION ONLY. ALL LISTINGS AND BID ACTIVITY ARE FICTIONAL. NOTHING IS SAVED TO A SERVER, AND NO REAL PURCHASE OR TRANSFER OCCURS.</p>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -73,32 +231,11 @@ export default function Home() {
   const [category, setCategory] = useState<Category | 'All'>('All');
   const [selected, setSelected] = useState<TicketSample | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sampleBids, setSampleBids] = useState<Record<string, number>>({});
-  const [liked, setLiked] = useState<string[]>([]);
-  const [seconds, setSeconds] = useState(0);
+
   const visible = useMemo(() => category === 'All' ? tickets : tickets.filter(t => t.category === category), [category]);
 
-  useEffect(() => {
-    const timer = window.setInterval(() => setSeconds(s => s + 1), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-  useEffect(() => {
-    if (!selected) return;
-    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setSelected(null); };
-    document.addEventListener('keydown', close);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', close); document.body.style.overflow = previous; };
-  }, [selected]);
-
-  const currentBid = (ticket: TicketSample) => Math.min(ticket.original, ticket.bid + (sampleBids[ticket.id] ?? 0) * 50);
   const closeMenu = () => setMenuOpen(false);
   const openTicket = (ticket: TicketSample) => setSelected(ticket);
-  const tryBid = (ticket: TicketSample) => {
-    if (!ticket.demoEnabled) return;
-    setSampleBids(previous => ({ ...previous, [ticket.id]: (previous[ticket.id] ?? 0) + 1 }));
-  };
-  const toggleHeart = (id: string) => setLiked(previous => previous.includes(id) ? previous.filter(x => x !== id) : [...previous, id]);
 
   return (
     <div className="site">
@@ -149,7 +286,7 @@ export default function Home() {
 
         <section id="explore" className="market-section section-space">
           <div className="shell">
-            <div className="section-heading"><div><div className="section-kicker"><span className="kicker-line"/> THE MARKETPLACE</div><h2>Find your <em>next moment.</em></h2><p>Flights, films, front-row energy. Take a peek at the possibilities.</p></div><span className="section-counter">01 <span>/</span> 03</span></div>
+            <div className="section-heading"><div><div className="section-kicker"><span className="kicker-line"/> THE MARKETPLACE</div><h2>Find your <em>next moment.</em></h2><p>Flights, films, front-row energy. Take a peek at the possibilities. Open an interactive card to enter the Bidding Arena.</p></div><span className="section-counter">01 <span>/</span> 03</span></div>
             <div className="market-toolbar"><div className="category-filter" role="group" aria-label="Filter ticket category"><button className={category==='All'?'active':''} onClick={()=>setCategory('All')}>All tickets</button>{categories.map(cat=><button key={cat} className={category===cat?'active':''} onClick={()=>setCategory(cat)}><TicketIcon category={cat} size={15}/>{cat}</button>)}</div><span className="results-count">{visible.length.toString().padStart(2,'0')} COLLECTION ITEMS</span></div>
             <div className="listing-grid">{visible.map(ticket=><TicketCard key={ticket.id} ticket={ticket} onPreview={openTicket}/>)}</div>
             <p className="market-note"><ShieldCheck size={16}/> All listings and prices are fictional examples. Some categories may prohibit resale or transfer in the real world.</p>
@@ -172,13 +309,13 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="faq-section section-space" id="faq"><div className="shell faq-grid"><div><div className="section-kicker"><span className="kicker-line"/> GOOD TO KNOW</div><h2>Curious?<br/><em>We thought so.</em></h2><p className="faq-intro">A few quick answers about what you’re looking at.</p></div><div className="faq-list"><details><summary>Can I actually buy or sell a ticket here? <ChevronDown size={20}/></summary><p>Not yet. This is a visual concept website with fictional listings and an optional interactive auction preview. No transactions happen here.</p></details><details><summary>Do I need an account to explore? <ChevronDown size={20}/></summary><p>No. There are no logins, registration forms, or personal ticket submissions on this demo site.</p></details><details><summary>How does the auction preview work? <ChevronDown size={20}/></summary><p>Choose a ticket marked interactive demo and try increasing the sample bid. The amount changes only on your screen and resets on refresh.</p></details><details><summary>Can every ticket be transferred? <ChevronDown size={20}/></summary><p>No. Providers set their own transfer and resale rules. Train and flight tickets are often non-transferable. Any future real marketplace would need to enforce these restrictions.</p></details></div></div></section>
+        <section className="faq-section section-space" id="faq"><div className="shell faq-grid"><div><div className="section-kicker"><span className="kicker-line"/> GOOD TO KNOW</div><h2>Curious?<br/><em>We thought so.</em></h2><p className="faq-intro">A few quick answers about what you’re looking at.</p></div><div className="faq-list"><details><summary>Can I actually buy or sell a ticket here? <ChevronDown size={20}/></summary><p>Not yet. This is a visual concept website with fictional listings and an optional interactive auction preview. No transactions happen here.</p></details><details><summary>Do I need an account to explore? <ChevronDown size={20}/></summary><p>No. There are no logins, registration forms, or personal ticket submissions on this demo site.</p></details><details><summary>How does the auction preview work? <ChevronDown size={20}/></summary><p>Open the Bidding Arena, choose a suggested amount or enter a custom demo bid, and watch the fictional bid timeline update. The sample data resets on refresh.</p></details><details><summary>Can every ticket be transferred? <ChevronDown size={20}/></summary><p>No. Providers set their own transfer and resale rules. Train and flight tickets are often non-transferable. Any future real marketplace would need to enforce these restrictions.</p></details></div></div></section>
 
         <section className="final-banner"><div className="shell final-content"><div className="final-star">✦</div><div className="section-kicker final-kicker">THIS IS JUST THE BEGINNING</div><h2>Good stories deserve<br/><em>an encore.</em></h2><p>Explore the idea. Imagine the possibilities. One ticket, a whole new story.</p><a href="#explore" className="button button-gold">See the demo tickets <ArrowUpRight size={19}/></a></div></section>
       </main>
       <footer className="footer"><div className="shell footer-top"><a className="brand footer-brand" href="#top"><span className="brand-icon"><Ticket size={21}/></span><span>BID<span className="brand-gold">MY</span>TICKET<span className="brand-period">.</span></span></a><div className="footer-links"><a href="#explore">Explore</a><a href="#how">How it works</a><a href="#why">Our idea</a><a href="#faq">FAQ</a></div></div><div className="shell footer-bottom"><span>© 2026 BIDMYTICKET. BUILT TO REIMAGINE THE POSSIBLE.</span><span>AN INTERACTIVE DESIGN CONCEPT · NOT A BOOKING PLATFORM</span></div></footer>
 
-      {selected && <div className="modal-backdrop" onMouseDown={(e)=>{if(e.target===e.currentTarget)setSelected(null);}}><section role="dialog" aria-modal="true" aria-labelledby="preview-title" className="preview-modal"><button className="modal-close" onClick={()=>setSelected(null)} aria-label="Close preview"><X size={21}/></button><span className="modal-kicker"><span className="status-dot"/> TICKET CONCEPT / NO REAL TRANSACTION</span><div className="modal-top"><div className={'modal-symbol tone-'+selected.tone}><TicketIcon category={selected.category} size={42}/></div><div><span className="modal-category">{selected.category} · {selected.date}</span><h2 id="preview-title">{selected.title}</h2><p>{selected.subtitle}</p></div></div><div className="modal-price-panel"><div><span>Sample highest bid</span><strong>{money(currentBid(selected))}</strong></div><span className="modal-price-comparison">Original {money(selected.original)}</span></div><div className="modal-meta"><div><span><Gavel size={15}/> Sample bids</span><strong>{selected.bids+(sampleBids[selected.id]??0)}</strong></div><div><span><Clock3 size={15}/> Concept auction</span><strong>{selected.demoEnabled ? (seconds%2===0?'ACTIVE DEMO':'TRY A BID') : 'PREVIEW ONLY'}</strong></div></div>{selected.demoEnabled?<><button className="button button-gold modal-bid" onClick={()=>tryBid(selected)} disabled={currentBid(selected)+50>selected.original}>Try a sample bid <ArrowUpRight size={18}/> <span>+ ₹50</span></button><button className={'save-preview '+(liked.includes(selected.id)?'saved':'')} onClick={()=>toggleHeart(selected.id)}><Heart size={17} fill={liked.includes(selected.id)?'currentColor':'none'}/>{liked.includes(selected.id)?'Saved to this demo session':'Save to this demo session'}</button></>:<div className="modal-restricted"><ShieldCheck size={20}/> This category is shown for illustration only. Real-world transfer rules may restrict resale.</div>}<p className="modal-disclaimer">This is a design simulation only. No account, payment, sale, reservation, or ticket transfer takes place. Nothing is saved to a database.</p></section></div>}
+      {selected && <BiddingArena key={selected.id} ticket={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

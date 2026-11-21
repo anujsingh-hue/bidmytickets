@@ -10,12 +10,12 @@ https://bidmyticket.vercel.app
 ## Features
 - Cinematic black-and-gold hero with a visual ticket illustration
 - Filterable six-category showcase with sample ticket cards
-- Interactive ticket preview dialogs and optional demo-only bid increments
+- Premium Bidding Arena with suggested bids, custom amounts, validation, animated price feedback, a simulated countdown, fictional history and session-only reset
 - Zero signups, forms or backend data collection
 - Responsive layout, mobile menu, FAQ, pricing illustration
 - Clear notes about real-world resale/transfer restrictions
 
-Ticket prices, routes, dates, bids and events are fictional examples. Clicking "Try a sample bid" changes only in-memory state on your device, and resets on refresh. The site doesn't request or store customer information.
+Ticket prices, routes, dates, bids and events are fictional examples. Trying a bid in the Bidding Arena updates only in-memory amounts and a fictional bid timeline in your browser; everything resets on refresh or when the arena is closed. The site doesn't request or store customer information.
 
 ## Run in browser-based GitHub Codespaces
 1. Open the repository via **Code → Codespaces**.

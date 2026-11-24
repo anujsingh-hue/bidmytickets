@@ -54,7 +54,7 @@ for (const width of [320, 375, 390, 768, 1024, 1280]) {
     await page.getByLabel('Display name').fill('Test');
     await page.getByLabel('Sample password').fill('1234');
     await page.getByRole('dialog').getByRole('button',{name:'Sign in',exact:true}).click();
-    await expect(page.getByRole('alert')).toContainText('at least five letters');
+    await expect(page.getByRole('dialog').getByRole('alert')).toContainText('at least five letters');
     await page.getByLabel('Display name').fill('Tester');
     await page.getByLabel('Sample password').fill('12345');
     await page.getByRole('dialog').getByRole('button',{name:'Sign in',exact:true}).click();

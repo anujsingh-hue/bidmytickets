@@ -335,3 +335,25 @@ h1 em,h2 em{color:var(--gold);font-family:Georgia,'Times New Roman',serif;font-w
 .arena-disclaimer{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){.arena{animation:none}.arena-current-number{animation:none}.arena-chip,.arena-submit{transition:none}}
+
+/* Local presentation account */
+.account-nav{border:0;max-width:220px;min-height:44px}.account-nav span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mobile-account{display:none}.card-cap{font-size:19px!important;color:#d8b56c}
+.account-panel h2{font-size:25px;line-height:1.25;overflow-wrap:anywhere;margin:17px 0 8px}
+.account-avatar{width:57px;height:57px;border-radius:50%;display:grid;place-items:center;background:#362a17;border:1px solid #8d713e;color:#e9c77e;margin:26px 0 0}
+.account-sub{font-size:13px;color:#b6a995;line-height:1.7;margin:0 0 22px}
+.account-panel label{display:block;font-size:12px;color:#d6c09b;margin:15px 0 7px}
+.account-panel input{display:block;width:100%;background:#0c0b09;border:1px solid #74603b;color:#f2dfbc;border-radius:7px;font-size:16px;padding:13px;outline:none}
+.account-panel input:focus{border-color:#f0cd8a;box-shadow:0 0 0 3px #c9a15b22}
+.account-submit{width:100%;margin-top:18px}.account-error{color:#ffc2b9;font-size:12px;line-height:1.6}
+.account-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.account-stats>div{background:#15120e;border:1px solid #55432b;border-radius:7px;padding:16px}
+.account-stats span{display:block;font-size:9px;letter-spacing:1px;color:#c4b28b}
+.account-stats strong{display:block;font-size:30px;color:#e9c77e;margin-top:6px}
+.account-history h3{font-size:14px;color:#e3c58c}.account-history p{font-size:12px;color:#aca08c;line-height:1.6}
+.account-row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #483a28;font-size:12px}
+.account-row strong{color:#e8c889;white-space:nowrap}
+.account-signout{display:flex;align-items:center;justify-content:center;gap:8px;background:transparent;border:0;color:#d2bc93;margin:17px auto;font-size:12px}
+.arena-status>span:last-child{max-width:50%;overflow-wrap:anywhere;text-align:right}
+@media(max-width:700px){.nav-right .account-nav{display:flex;max-width:135px;padding:10px;font-size:10px;gap:5px}.nav-shell{gap:8px}.mobile-account{display:flex;gap:8px;align-items:center;border:0;background:none;color:#e4c486;text-align:left;font-size:14px;padding:13px 8px}}
+@media(max-width:380px){.account-nav span{max-width:62px}.nav-right .account-nav{padding:9px}.brand{gap:6px}.nav-shell{gap:5px}}

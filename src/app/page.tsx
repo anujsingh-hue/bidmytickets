@@ -213,7 +213,7 @@ function BiddingArena({ ticket, onClose, member, placedBids, onBid, onReset, reg
                 <label className="registration-consent"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/><span>I accept the auction rules and the organizer-approved price limits. This registration is for the presentation sandbox and does not reserve a real ticket.</span></label>
                 <button type="submit" className="arena-submit" disabled={!accepted || ended || atLimit}><Ticket size={18}/> {ended ? 'Auction closed' : atLimit ? 'Bidding unavailable' : 'Confirm registration'} <ArrowUpRight size={18}/></button>
               </form> : <>
-              <div className="registration-confirmed" role="status" aria-label="Registration status"><CheckCircle2 size={18}/><span><strong>Registration confirmed</strong><small>You're eligible to place bids for this event in this session.</small></span></div>
+              <div className="registration-confirmed" role="status" aria-label="Registration status"><CheckCircle2 size={18}/><span><strong>Registration confirmed</strong><small>You are eligible to place bids for this event in this session.</small></span></div>
               <div className="arena-bid-form">
                 <div className="arena-block-title"><span>01 / PLACE YOUR BID</span><span className="arena-step">+ {money(BID_STEP)} MIN. INCREMENT</span></div>
                 <div className="arena-suggested" role="group" aria-label="Suggested bid amounts">

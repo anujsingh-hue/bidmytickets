@@ -16,6 +16,7 @@ type TicketSample = {
   subtitle: string;
   date: string;
   original: number;
+  floor: number;
   cap: number;
   bid: number;
   bids: number;
@@ -29,14 +30,20 @@ const categories: Category[] = ['Concerts', 'Sports', 'Movies', 'Comedy', 'Campu
 const icons: Record<Category, LucideIcon> = {
   Movies: Clapperboard, Concerts: Music2, Sports: Trophy, Comedy: Mic2, Campus: GraduationCap
 };
-const tickets: TicketSample[] = [
-  { id: 'concert', category: 'Concerts', title: 'Afterglow Music Festival', subtitle: 'Mumbai · The Arena', date: 'SAT, 13 FEB 2027', original: 3499, cap: 3299, bid: 2799, bids: 12, ending: '02h 34m', code: 'AFTERGLOW / 27', tone: 'violet', tag: 'HOT PICK', demoEnabled: true },
-  { id: 'campus', category: 'Campus', title: 'Campus Culture Night', subtitle: 'Bhopal · Open Air Theatre', date: 'FRI, 22 JAN 2027', original: 999, cap: 999, bid: 699, bids: 8, ending: '06h 18m', code: 'CAMPUS / 27', tone: 'amber', tag: 'POPULAR', demoEnabled: true },
-  { id: 'sports', category: 'Sports', title: 'The City Football Final', subtitle: 'Delhi · City Stadium', date: 'SUN, 21 FEB 2027', original: 2499, cap: 2299, bid: 1999, bids: 16, ending: '01h 48m', code: 'FINAL WHISTLE', tone: 'blue', tag: 'TRENDING', demoEnabled: true },
-  { id: 'movie', category: 'Movies', title: 'Midnight Film Premiere', subtitle: 'Pune · Luxe Cinema', date: 'SAT, 30 JAN 2027', original: 899, cap: 849, bid: 649, bids: 4, ending: '03h 15m', code: 'LIGHTS. CAMERA.', tone: 'rose', tag: 'LIMITED', demoEnabled: true },
-  { id: 'comedy', category: 'Comedy', title: 'The Late Night Laughs', subtitle: 'Indore · The Comedy Room', date: 'MON, 8 FEB 2027', original: 1850, cap: 1750, bid: 1450, bids: 7, ending: '04h 10m', code: 'LAUGH / 01', tone: 'sage', tag: 'POPULAR', demoEnabled: true },
-  { id: 'festival', category: 'Concerts', title: 'Golden Hour Live', subtitle: 'Bengaluru · Open Stage', date: 'THU, 11 FEB 2027', original: 6499, cap: 5999, bid: 5199, bids: 9, ending: '05h 25m', code: 'GOLDEN HOUR', tone: 'teal', tag: 'FEATURED', demoEnabled: true }
+const eventCatalog: Omit<TicketSample, 'floor' | 'cap' | 'bid'>[] = [
+  { id: 'concert', category: 'Concerts', title: 'Afterglow Music Festival', subtitle: 'Mumbai · The Arena', date: 'SAT, 13 FEB 2027', original: 3499, bids: 12, ending: '02h 34m', code: 'AFTERGLOW / 27', tone: 'violet', tag: 'HOT PICK', demoEnabled: true },
+  { id: 'campus', category: 'Campus', title: 'Campus Culture Night', subtitle: 'Bhopal · Open Air Theatre', date: 'FRI, 22 JAN 2027', original: 999, bids: 8, ending: '06h 18m', code: 'CAMPUS / 27', tone: 'amber', tag: 'POPULAR', demoEnabled: true },
+  { id: 'sports', category: 'Sports', title: 'The City Football Final', subtitle: 'Delhi · City Stadium', date: 'SUN, 21 FEB 2027', original: 2499, bids: 16, ending: '01h 48m', code: 'FINAL WHISTLE', tone: 'blue', tag: 'TRENDING', demoEnabled: true },
+  { id: 'movie', category: 'Movies', title: 'Midnight Film Premiere', subtitle: 'Pune · Luxe Cinema', date: 'SAT, 30 JAN 2027', original: 899, bids: 4, ending: '03h 15m', code: 'LIGHTS. CAMERA.', tone: 'rose', tag: 'LIMITED', demoEnabled: true },
+  { id: 'comedy', category: 'Comedy', title: 'The Late Night Laughs', subtitle: 'Indore · The Comedy Room', date: 'MON, 8 FEB 2027', original: 1850, bids: 7, ending: '04h 10m', code: 'LAUGH / 01', tone: 'sage', tag: 'POPULAR', demoEnabled: true },
+  { id: 'festival', category: 'Concerts', title: 'Golden Hour Live', subtitle: 'Bengaluru · Open Stage', date: 'THU, 11 FEB 2027', original: 6499, bids: 9, ending: '05h 25m', code: 'GOLDEN HOUR', tone: 'teal', tag: 'FEATURED', demoEnabled: true }
 ];
+// Whole-rupee bounds: never round below 80% or above 120%.
+const tickets: TicketSample[] = eventCatalog.map(event => {
+  const floor = Math.ceil(event.original * 80 / 100);
+  const cap = Math.floor(event.original * 120 / 100);
+  return { ...event, floor, cap, bid: Math.min(cap, floor + 100) };
+});
 const money = (n: number) => '₹' + n.toLocaleString('en-IN');
 
 function TicketIcon({ category, size = 24 }: { category: Category; size?: number }) {
@@ -55,10 +62,10 @@ function TicketCard({ ticket, onPreview, highest }: { ticket: TicketSample; onPr
         <div className="ticket-kind"><TicketIcon category={ticket.category} size={15} /> {ticket.category}<span className="ticket-date">{ticket.date}</span></div>
         <h3>{ticket.title}</h3>
         <p className="ticket-location"><MapPin size={14} />{ticket.subtitle}</p>
-        <div className="ticket-rule" />
+        <div className="ticket-rule" /><div className="ticket-bounds"><span>Original {money(ticket.original)}</span><span>Starts at {money(ticket.floor)} (80%)</span></div>
         <div className="ticket-price-row">
           <div><span className="overline">CURRENT BID</span><strong>{money(highest)}</strong></div>
-          <div className="price-right"><span className="overline">PRICE CAP</span><strong className="card-cap">{money(ticket.cap)}</strong></div>
+          <div className="price-right"><span className="overline">CAP · 120%</span><strong className="card-cap">{money(ticket.cap)}</strong></div>
         </div>
         <div className="ticket-bottom">
           <div className="ticket-small"><Clock3 size={14}/>{ticket.demoEnabled ? ticket.ending + ' left' : 'Preview only'}</div>
@@ -146,7 +153,7 @@ function BiddingArena({ ticket, onClose, member, placedBids, onBid, onReset }: {
   const timeline = [
     ...placedBids.map((amount, index) => ({ amount, label: member + ' · You', when: index === placedBids.length - 1 ? 'JUST NOW' : 'EARLIER THIS SESSION', yours: true })).reverse(),
     ...[0, 1, 2].map((index) => ({
-      amount: ticket.bid - index * 70,
+      amount: Math.max(ticket.floor, ticket.bid - index * 50),
       label: ['Bidder C', 'Bidder B', 'Bidder A'][index],
       when: ['2 MIN AGO', '5 MIN AGO', '8 MIN AGO'][index],
       yours: false
@@ -174,10 +181,10 @@ function BiddingArena({ ticket, onClose, member, placedBids, onBid, onReset }: {
             </div>
             <div className="arena-stats">
               <div><span>ORIGINAL PRICE</span><strong>{money(ticket.original)}</strong></div>
-              <div><span>MAXIMUM PRICE</span><strong>{money(ticket.cap)}</strong></div>
-              <div><span>TOTAL BIDS</span><strong>{count.toString().padStart(2,'0')}</strong></div>
+              <div><span>START · 80%</span><strong>{money(ticket.floor)}</strong></div>
+              <div><span>CAP · 120%</span><strong>{money(ticket.cap)}</strong></div>
             </div>
-            <div className="arena-note"><ShieldCheck size={17}/><span>Fair resale policy: bids above the configured event price cap are automatically rejected.</span></div>
+            <div className="arena-note"><ShieldCheck size={17}/><span>Fair resale: auctions start at 80% and are capped at 120% of face value, subject to organizer permission. Bids above the cap are rejected.</span></div>
           </div>
           <div className="arena-right">
             <div className="arena-status"><span><span className="live-pulse"/> {ticket.demoEnabled ? 'AUCTION OPEN' : 'PREVIEW'}</span><span>SIGNED IN AS {member}</span></div>
@@ -198,7 +205,7 @@ function BiddingArena({ ticket, onClose, member, placedBids, onBid, onReset }: {
                 </div>
                 <label className="arena-input-label" htmlFor="bid-amount">Or enter your own amount</label>
                 <div className="arena-input-wrap"><span>₹</span><input id="bid-amount" name="bid-amount" type="number" inputMode="numeric" min={minBid} max={ticket.cap} step="1" value={offer} onChange={event => { setOffer(event.target.value); setFeedback(null); }} placeholder="Enter amount" disabled={atLimit || ended}/><span>INR</span></div>
-                <div className="arena-range"><span>Minimum next bid: {money(minBid)}</span><span>Policy cap: {money(ticket.cap)}</span></div>
+                <div className="arena-range"><span>Minimum next bid: {money(minBid)}</span><span>Maximum (120%): {money(ticket.cap)}</span></div>
                 <button className="arena-submit" type="button" onClick={placeBid} disabled={atLimit || ended}>
                   <Gavel size={19}/>{atLimit ? 'Maximum price reached' : ended ? 'Auction closed' : 'Place bid'}<ArrowUpRight size={18}/>
                 </button>
@@ -316,7 +323,7 @@ export default function Home() {
               <h1>Every ticket<br/>deserves a<br/><em>second chance.</em></h1>
               <p className="hero-description">Plans change. Great experiences shouldn’t go to waste. Discover a more exciting way to explore unused tickets, powered by the thrill of an auction.</p>
               <div className="hero-buttons"><a className="button button-gold" href="#explore">Explore auctions <ArrowUpRight size={19}/></a><a className="button button-quiet" href="#how"><CirclePlay size={20}/> How it works</a></div>
-              <div className="hero-proof"><div className="proof-avatars"><span>A</span><span>B</span><span>M</span></div><p><strong>Fair resale comes first.</strong><br/>Transparent bids. Policy-based price limits.</p></div>
+              <div className="hero-proof"><div className="proof-avatars"><span>A</span><span>B</span><span>M</span></div><p><strong>Fair resale comes first.</strong><br/>Transparent bids. 80%–120% pricing.</p></div>
             </div>
             <div className="hero-art" aria-label="Decorative preview of a sample ticket auction">
               <div className="halo halo-one"/><div className="halo halo-two"/><div className="hero-tiny-star tiny-one">✦</div><div className="hero-tiny-star tiny-two">✧</div>
@@ -327,7 +334,7 @@ export default function Home() {
                 <div className="hero-route"><div><strong>LIVE</strong><small>AFTERGLOW</small></div><div className="route-connector"><Music2 size={26}/><span/></div><div><strong>27</strong><small>MUSIC FEST</small></div></div>
                 <div className="hero-ticket-info"><div><span>EXPERIENCE</span><b>AFTERGLOW FEST</b></div><div><span>CLASS</span><b>GOLD</b></div></div>
                 <div className="perforation"><span/><span className="dash-line"/><span/></div>
-                <div className="hero-ticket-footer"><div><span>STARTING BID</span><strong>₹2,400</strong></div><div className="barcode" aria-hidden="true"/><div className="gold-stamp">BMT<br/>✦</div></div>
+                <div className="hero-ticket-footer"><div><span>STARTING BID</span><strong>{money(tickets[0].floor)}</strong></div><div className="barcode" aria-hidden="true"/><div className="gold-stamp">BMT<br/>✦</div></div>
               </div>
               <div className="float-chip float-chip-bottom"><div className="mini-rise"><ArrowUpRight size={21}/></div><div><strong>Every ticket has a second life.</strong><small>Fair auctions. Great experiences.</small></div></div>
             </div>
@@ -342,7 +349,7 @@ export default function Home() {
             <div className="section-heading"><div><div className="section-kicker"><span className="kicker-line"/> THE MARKETPLACE</div><h2>Find your <em>next moment.</em></h2><p>Discover concerts, sports, cinema, comedy and campus events. Find a ticket and enter the Bidding Arena.</p></div><span className="section-counter">01 <span>/</span> 03</span></div>
             <div className="market-toolbar"><div className="category-filter" role="group" aria-label="Filter ticket category"><button className={category==='All'?'active':''} onClick={()=>setCategory('All')}>All tickets</button>{categories.map(cat=><button key={cat} className={category===cat?'active':''} onClick={()=>setCategory(cat)}><TicketIcon category={cat} size={15}/>{cat}</button>)}</div><span className="results-count">{visible.length.toString().padStart(2,'0')} COLLECTION ITEMS</span></div>
             <div className="listing-grid">{visible.map(ticket=><TicketCard key={ticket.id} ticket={ticket} onPreview={openTicket} highest={history[ticket.id]?.[history[ticket.id].length-1] ?? ticket.bid}/>)}</div>
-            <p className="market-note"><ShieldCheck size={16}/> Resale requires organizer permission. Each auction uses a maximum price set by its event policy.</p>
+            <p className="market-note"><ShieldCheck size={16}/> Resale requires organizer permission. Our standard bidding range is 80%–120% of the original price, only where the event’s policy permits it.</p>
           </div>
         </section>
 
@@ -358,11 +365,11 @@ export default function Home() {
 
         <section id="why" className="vision-section">
           <div className="shell vision-grid"><div className="vision-copy"><div className="section-kicker dark-kicker"><span className="kicker-line"/> WHY BIDMYTICKET?</div><h2>Less waste.<br/>More <em>wonder.</em></h2><p>An unused ticket isn’t the end of the story. It’s a chance for someone else’s story to begin.</p><a className="button button-black" href="#explore">Explore events <ArrowUpRight size={18}/></a></div>
-            <div className="vision-card"><div className="vision-caption"><Sparkles size={19}/> FAIR PRICE EXAMPLE</div><div className="vision-stat"><span>Original ticket</span><s>₹2,000</s></div><div className="vision-stat"><span>Starting bid</span><strong>₹1,600</strong></div><div className="vision-line"/><div className="vision-win"><span>Example winning bid</span><strong>₹1,850 <ArrowUpRight size={21}/></strong></div><p>Resale prices must stay within the event’s permitted maximum.</p></div>
+            <div className="vision-card"><div className="vision-caption"><Sparkles size={19}/> FAIR PRICE EXAMPLE</div><div className="vision-stat"><span>Original ticket</span><s>₹2,000</s></div><div className="vision-stat"><span>Starting bid (80%)</span><strong>₹1,600</strong></div><div className="vision-stat"><span>Maximum bid (120%)</span><strong>₹2,400</strong></div><div className="vision-line"/><div className="vision-win"><span>Example winning bid</span><strong>₹1,850 <ArrowUpRight size={21}/></strong></div><p>The 80%–120% range applies only when permitted by the event’s resale policy.</p></div>
           </div>
         </section>
 
-        <section className="faq-section section-space" id="faq"><div className="shell faq-grid"><div><div className="section-kicker"><span className="kicker-line"/> GOOD TO KNOW</div><h2>Curious?<br/><em>We thought so.</em></h2><p className="faq-intro">A few quick answers about what you’re looking at.</p></div><div className="faq-list"><details><summary>Can I actually buy or sell a ticket here? <ChevronDown size={20}/></summary><p>This presentation sandbox uses sample listings and local bidding. No real payments or ticket transfers take place.</p></details><details><summary>Do I need an account to explore? <ChevronDown size={20}/></summary><p>You can explore events freely. To bid, use the local presentation account; no real authentication or customer data is needed.</p></details><details><summary>How does the auction preview work? <ChevronDown size={20}/></summary><p>Open the Bidding Arena, choose a suggested amount or enter a custom bid, and follow your activity in My Account.</p></details><details><summary>Can every ticket be transferred? <ChevronDown size={20}/></summary><p>No. Resale must be permitted by the event organizer or authorized ticketing platform. Their policy determines the maximum price.</p></details></div></div></section>
+        <section className="faq-section section-space" id="faq"><div className="shell faq-grid"><div><div className="section-kicker"><span className="kicker-line"/> GOOD TO KNOW</div><h2>Curious?<br/><em>We thought so.</em></h2><p className="faq-intro">A few quick answers about what you’re looking at.</p></div><div className="faq-list"><details><summary>Can I actually buy or sell a ticket here? <ChevronDown size={20}/></summary><p>This presentation sandbox uses sample listings and local bidding. No real payments or ticket transfers take place.</p></details><details><summary>Do I need an account to explore? <ChevronDown size={20}/></summary><p>You can explore events freely. To bid, use the local presentation account; no real authentication or customer data is needed.</p></details><details><summary>How does the auction preview work? <ChevronDown size={20}/></summary><p>Open the Bidding Arena, choose a suggested amount or enter a custom bid, and follow your activity in My Account.</p></details><details><summary>Can every ticket be transferred? <ChevronDown size={20}/></summary><p>No. Resale must be permitted by the event organizer or authorized ticketing platform. Our standard range is 80%–120% of original price, subject to their permission and any stricter limits.</p></details></div></div></section>
 
         <section className="final-banner"><div className="shell final-content"><div className="final-star">✦</div><div className="section-kicker final-kicker">THIS IS JUST THE BEGINNING</div><h2>Good stories deserve<br/><em>an encore.</em></h2><p>One ticket, a whole new story.</p><a href="#explore" className="button button-gold">Explore events <ArrowUpRight size={19}/></a></div></section>
       </main>

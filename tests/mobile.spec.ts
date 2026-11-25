@@ -23,13 +23,19 @@ for (const width of [320, 375, 390, 768, 1024, 1280]) {
     await page.getByRole('link', {name:'Explore auctions'}).click();
     await page.getByRole('button',{name:'Campus',exact:true}).click();
     await expect(page.locator('.ticket-card')).toHaveCount(1);
-    await page.getByRole('button',{name:'Enter bidding arena for Campus Culture Night'}).click();
+    await page.getByRole('button',{name:'Apply to bid for Campus Culture Night'}).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole('heading',{name:'Campus Culture Night'})).toBeVisible();
     await expect(dialog.locator('.arena-current-number')).toHaveText('₹900');
     await expect(dialog.getByTestId('arena-timer')).toContainText(':');
+    await expect(dialog.getByRole('heading',{name:'Apply to bid'})).toBeVisible();
+    await expect(dialog.getByRole('button',{name:'Confirm registration'})).toBeDisabled();
+    await expect(dialog.getByLabel('Or enter your own amount')).toHaveCount(0);
+    await dialog.getByRole('checkbox').check();
+    await dialog.getByRole('button',{name:'Confirm registration'}).click();
+    await expect(dialog.getByRole('status',{name:'Registration status'})).toContainText('Registration confirmed');
     await expect(dialog.getByLabel('Or enter your own amount')).toHaveAttribute('max','1198');
     await expect(dialog.locator('.arena-stats')).toContainText('₹800');
     await assertNoOverflow(page,'bid arena open',width);
@@ -37,14 +43,14 @@ for (const width of [320, 375, 390, 768, 1024, 1280]) {
     await expect(dialog.getByLabel('Or enter your own amount')).toHaveValue('1000');
     await dialog.getByRole('button',{name:/Place bid/}).click();
     await expect(dialog.locator('.arena-current-number')).toHaveText('₹1,000');
-    await expect(dialog.getByRole('status')).toContainText('now leading');
+    await expect(dialog.getByRole('status',{name:'Bid feedback'})).toContainText('now leading');
     await expect(dialog.getByText('Campus Member · You')).toBeVisible();
     await dialog.getByLabel('Or enter your own amount').fill('1');
     await dialog.getByRole('button',{name:/Place bid/}).click();
-    await expect(dialog.getByRole('status')).toContainText('Enter a whole-rupee amount');
+    await expect(dialog.getByRole('status',{name:'Bid feedback'})).toContainText('Enter a whole-rupee amount');
     await dialog.getByLabel('Or enter your own amount').fill('1199');
     await dialog.getByRole('button',{name:/Place bid/}).click();
-    await expect(dialog.getByRole('status')).toContainText('₹1,198');
+    await expect(dialog.getByRole('status',{name:'Bid feedback'})).toContainText('₹1,198');
     await expect(dialog.locator('.arena-current-number')).toHaveText('₹1,000');
     await dialog.getByLabel('Or enter your own amount').fill('1198');
     await dialog.getByRole('button',{name:/Place bid/}).click();
@@ -60,6 +66,8 @@ for (const width of [320, 375, 390, 768, 1024, 1280]) {
     await expect(page.getByRole('button',{name:'Buses',exact:true})).toHaveCount(0);
     await page.getByRole('button',{name:'Campus Member',exact:true}).click();
     await expect(page.getByRole('heading',{name:'Welcome back, Campus Member'})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'My registrations'})).toBeVisible();
+    await expect(page.getByRole('button',{name:/Campus Culture Night Registered/})).toBeVisible();
     await page.getByRole('button',{name:'Sign out'}).click();
     await page.getByLabel('Display name').fill('Test');
     await page.getByLabel('Sample password').fill('1234');

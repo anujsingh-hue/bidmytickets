@@ -5,3 +5,5 @@ Event ticket auction presentation sandbox. Fictional event listings, 80% startin
 Live: https://bidmyticket.vercel.app
 
 Checks: npm run build; npm run test:mobile.
+
+Each event requires free session-only registration and explicit acceptance of auction rules before bidding. Registrations appear in the account and reset on sign-out or reload. No real ticket reservation, charge, or server-side verification is performed.

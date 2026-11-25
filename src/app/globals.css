@@ -359,3 +359,19 @@ h1 em,h2 em{color:var(--gold);font-family:Georgia,'Times New Roman',serif;font-w
 @media(max-width:380px){.account-nav span{max-width:62px}.nav-right .account-nav{padding:9px}.brand{gap:6px}.nav-shell{gap:5px}}
 
 .ticket-bounds{display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px 10px;font-size:11px;color:#c5b69a;margin:0 0 12px}
+
+/* Ticket registration */
+.registration-panel{margin-top:20px;padding:19px;border:1px solid #6d5732;background:linear-gradient(145deg,#2d2416,#17130e);border-radius:9px}
+.registration-kicker{font-size:10px;font-weight:800;letter-spacing:1.4px;color:#d6b878}
+.registration-panel h3{font-size:24px;color:#f5e6c7;margin:9px 0 5px}
+.registration-panel p{color:#b8aa91;font-size:12px;line-height:1.6;margin:0 0 15px}
+.registration-details{display:grid;gap:0;margin:12px 0 16px}
+.registration-details div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #65502e66;font-size:12px;color:#c9b99b}
+.registration-details strong{text-align:right;color:#f2d79e;overflow-wrap:anywhere;min-width:0}
+.registration-consent{display:flex;align-items:flex-start;gap:10px;font-size:11px;line-height:1.6;color:#d1c2a6;margin:14px 0 18px;cursor:pointer}
+.registration-consent input{accent-color:#d8b56c;width:19px;height:19px;flex:0 0 19px;margin:1px 0}
+.registration-confirmed{display:flex;gap:10px;align-items:flex-start;padding:12px;background:#1f2d20;border:1px solid #445d35;color:#d3e5bc;border-radius:7px;margin-top:16px;font-size:12px}
+.registration-confirmed svg{flex:0 0 auto}.registration-confirmed small{display:block;font-size:10px;color:#bbcba8;line-height:1.6;margin-top:3px}
+.registration-account-row{display:flex;width:100%;justify-content:space-between;align-items:center;text-align:left;background:#201a12;border:1px solid #5c492d;border-radius:6px;color:#e9c987;padding:11px;margin:8px 0;gap:10px;font-size:12px}
+.registration-account-row span{min-width:0}.registration-account-row strong{overflow-wrap:anywhere}.registration-account-row small{display:block;color:#beaf92;font-size:10px;margin-top:4px}.registration-account-row svg{flex:0 0 auto}
+@media(max-width:480px){.registration-panel{padding:14px}.registration-panel h3{font-size:21px}.registration-details div{font-size:11px}}

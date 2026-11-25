@@ -50,7 +50,7 @@ function TicketIcon({ category, size = 24 }: { category: Category; size?: number
   const Icon = icons[category]; return <Icon size={size} strokeWidth={1.65} />;
 }
 
-function TicketCard({ ticket, onPreview, highest }: { ticket: TicketSample; onPreview: (ticket: TicketSample) => void; highest: number }) {
+function TicketCard({ ticket, onPreview, highest, registered }: { ticket: TicketSample; onPreview: (ticket: TicketSample) => void; highest: number; registered: boolean }) {
   return (
     <article className="ticket-card">
       <div className={'ticket-cover tone-' + ticket.tone}>
@@ -69,7 +69,7 @@ function TicketCard({ ticket, onPreview, highest }: { ticket: TicketSample; onPr
         </div>
         <div className="ticket-bottom">
           <div className="ticket-small"><Clock3 size={14}/>{ticket.demoEnabled ? ticket.ending + ' left' : 'Preview only'}</div>
-          <button className="card-action" onClick={() => onPreview(ticket)} aria-label={ticket.demoEnabled ? 'Enter bidding arena for '+ticket.title : 'Preview '+ticket.title}>{ticket.demoEnabled?'Enter arena':'View concept'} <ArrowUpRight size={16}/></button>
+          <button className="card-action" onClick={() => onPreview(ticket)} aria-label={ticket.demoEnabled ? (registered ? 'Enter bidding arena for ' : 'Apply to bid for ')+ticket.title : 'Preview '+ticket.title}>{ticket.demoEnabled ? (registered ? 'Enter arena' : 'Apply to bid') : 'View concept'} <ArrowUpRight size={16}/></button>
         </div>
       </div>
     </article>
@@ -79,7 +79,8 @@ function TicketCard({ ticket, onPreview, highest }: { ticket: TicketSample; onPr
 
 const BID_STEP = 50;
 
-function BiddingArena({ ticket, onClose, member, placedBids, onBid, onReset }: { ticket: TicketSample; onClose: () => void; member: string; placedBids: number[]; onBid: (amount: number) => void; onReset: () => void }) {
+function BiddingArena({ ticket, onClose, member, placedBids, onBid, onReset, registered, onRegister }: { ticket: TicketSample; onClose: () => void; member: string; placedBids: number[]; onBid: (amount: number) => void; onReset: () => void; registered: boolean; onRegister: () => void }) {
+  const [accepted,setAccepted] = useState(false);
   const [offer, setOffer] = useState(String((placedBids[placedBids.length - 1] ?? ticket.bid) + BID_STEP));
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [saved, setSaved] = useState(false);
@@ -133,7 +134,7 @@ function BiddingArena({ ticket, onClose, member, placedBids, onBid, onReset }: {
   }, [ticket.demoEnabled]);
 
   function placeBid() {
-    if (!ticket.demoEnabled || ended || atLimit) return;
+    if (!registered || !ticket.demoEnabled || ended || atLimit) return;
     if (!validOffer) {
       setFeedback({ kind: 'error', text: 'Enter a whole-rupee amount between ' + money(minBid) + ' and ' + money(ticket.cap) + '.' });
       return;
@@ -198,6 +199,21 @@ function BiddingArena({ ticket, onClose, member, placedBids, onBid, onReset }: {
               <div className="arena-progress"><span style={{ width: ticket.demoEnabled ? Math.max(0, Math.min(100, secondsLeft / (3 * 3600) * 100)) + '%' : '0%' }}/></div>
             </div>
             {ticket.demoEnabled ? <>
+              {!registered ? <form className="registration-panel" onSubmit={e=>{e.preventDefault();if(accepted && !ended && !atLimit)onRegister();}}>
+                <span className="registration-kicker">01 / AUCTION REGISTRATION</span>
+                <h3>Apply to bid</h3>
+                <p>Register your interest in this ticket before joining the auction.</p>
+                <div className="registration-details">
+                  <div><span>Member</span><strong>{member}</strong></div>
+                  <div><span>Ticket quantity</span><strong>1 ticket</strong></div>
+                  <div><span>Permitted starting price</span><strong>{money(ticket.floor)}</strong></div>
+                  <div><span>Maximum price</span><strong>{money(ticket.cap)}</strong></div>
+                  <div><span>Registration fee</span><strong>Free</strong></div>
+                </div>
+                <label className="registration-consent"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/><span>I accept the auction rules and the organizer-approved price limits. This registration is for the presentation sandbox and does not reserve a real ticket.</span></label>
+                <button type="submit" className="arena-submit" disabled={!accepted || ended || atLimit}><Ticket size={18}/> {ended ? 'Auction closed' : atLimit ? 'Bidding unavailable' : 'Confirm registration'} <ArrowUpRight size={18}/></button>
+              </form> : <>
+              <div className="registration-confirmed" role="status" aria-label="Registration status"><CheckCircle2 size={18}/><span><strong>Registration confirmed</strong><small>You're eligible to place bids for this event in this session.</small></span></div>
               <div className="arena-bid-form">
                 <div className="arena-block-title"><span>01 / PLACE YOUR BID</span><span className="arena-step">+ {money(BID_STEP)} MIN. INCREMENT</span></div>
                 <div className="arena-suggested" role="group" aria-label="Suggested bid amounts">
@@ -209,13 +225,14 @@ function BiddingArena({ ticket, onClose, member, placedBids, onBid, onReset }: {
                 <button className="arena-submit" type="button" onClick={placeBid} disabled={atLimit || ended}>
                   <Gavel size={19}/>{atLimit ? 'Maximum price reached' : ended ? 'Auction closed' : 'Place bid'}<ArrowUpRight size={18}/>
                 </button>
-                {feedback && <div className={'arena-feedback ' + feedback.kind} role="status">{feedback.kind === 'success' ? <CheckCircle2 size={18}/> : <X size={18}/>}<span>{feedback.text}</span></div>}
-                {atLimit && !feedback && <div className="arena-feedback success" role="status"><CheckCircle2 size={18}/>The next bid would exceed the event’s configured price cap.</div>}
+                {feedback && <div className={'arena-feedback ' + feedback.kind} role="status" aria-label="Bid feedback">{feedback.kind === 'success' ? <CheckCircle2 size={18}/> : <X size={18}/>}<span>{feedback.text}</span></div>}
+                {atLimit && !feedback && <div className="arena-feedback success" role="status" aria-label="Bid feedback"><CheckCircle2 size={18}/>The next bid would exceed the event’s configured price cap.</div>}
               </div>
               <div className="arena-bid-footer">
                 <button className={'arena-save ' + (saved ? 'is-saved' : '')} type="button" onClick={() => setSaved(value => !value)}><Heart size={15} fill={saved ? 'currentColor' : 'none'}/>{saved ? 'Saved for this session' : 'Save for this session'}</button>
                 <button className="arena-reset" type="button" onClick={resetDemo}><RotateCcw size={14}/>Reset simulation</button>
               </div>
+              </>}
               <div className="arena-history">
                 <div className="arena-block-title"><span>02 / BID HISTORY</span><span>{count} TOTAL BIDS</span></div>
                 <ol>{timeline.map((item, index) => <li key={item.yours ? 'your-' + index : 'seed-' + index} className={item.yours ? 'own-bid' : ''}>
@@ -234,7 +251,7 @@ function BiddingArena({ ticket, onClose, member, placedBids, onBid, onReset }: {
 }
 
 
-function AccountPanel({ member, onSignIn, onSignOut, onClose, history }: { member: string | null; onSignIn: (name: string) => void; onSignOut: () => void; onClose: () => void; history: Record<string, number[]> }) {
+function AccountPanel({ member, onSignIn, onSignOut, onClose, history, registrations, onOpenTicket }: { member: string | null; onSignIn: (name: string) => void; onSignOut: () => void; onClose: () => void; history: Record<string, number[]>; registrations: string[]; onOpenTicket: (ticket: TicketSample) => void }) {
   const [name,setName] = useState('');
   const [error,setError] = useState('');
   const password = useRef<HTMLInputElement>(null);
@@ -263,8 +280,8 @@ function AccountPanel({ member, onSignIn, onSignOut, onClose, history }: { membe
       <h2 id="account-title">{member ? 'Welcome back, '+member : 'Sign in to your account'}</h2>
       {member ? <>
         <p className="account-sub">Your auction activity, all in one place.</p>
-        <div className="account-stats"><div><span>AUCTIONS JOINED</span><strong>{Object.values(history).filter(b=>b.length).length}</strong></div><div><span>BIDS PLACED</span><strong>{Object.values(history).reduce((sum,b)=>sum+b.length,0)}</strong></div></div>
-        <div className="account-history"><h3>My bids</h3>{Object.entries(history).filter(([,b])=>b.length).length ? Object.entries(history).filter(([,b])=>b.length).map(([id,b])=><div key={id} className="account-row"><span>{tickets.find(t=>t.id===id)?.title}</span><strong>{money(b[b.length-1])}</strong></div>) : <p>No bids yet. Explore an event to place your first bid.</p>}</div>
+        <div className="account-stats"><div><span>AUCTIONS JOINED</span><strong>{registrations.length}</strong></div><div><span>BIDS PLACED</span><strong>{Object.values(history).reduce((sum,b)=>sum+b.length,0)}</strong></div></div>
+        <div className="account-history"><h3>My registrations</h3>{registrations.length ? tickets.filter(t=>registrations.includes(t.id)).map(t=><button key={t.id} className="registration-account-row" onClick={()=>onOpenTicket(t)}><span><strong>{t.title}</strong><small>Registered · Ready to bid</small></span><ArrowUpRight size={17}/></button>) : <p>No registrations yet. Choose an event to apply for its auction.</p>}</div><div className="account-history"><h3>My bids</h3>{Object.entries(history).filter(([,b])=>b.length).length ? Object.entries(history).filter(([,b])=>b.length).map(([id,b])=><div key={id} className="account-row"><span>{tickets.find(t=>t.id===id)?.title}</span><strong>{money(b[b.length-1])}</strong></div>) : <p>No bids yet. Explore an event to place your first bid.</p>}</div>
         <button className="button button-gold account-submit" onClick={onClose}>Continue exploring <ArrowUpRight size={17}/></button>
         <button className="account-signout" onClick={onSignOut}><LogOut size={15}/> Sign out</button>
       </> : <form onSubmit={submit} autoComplete="off">
@@ -286,6 +303,7 @@ export default function Home() {
   const [member,setMember] = useState<string | null>('Campus Member');
   const [accountOpen,setAccountOpen] = useState(false);
   const [history,setHistory] = useState<Record<string,number[]>>({});
+  const [registrations,setRegistrations] = useState<string[]>([]);
   const [pending,setPending] = useState<TicketSample | null>(null);
   const closeAccount = useCallback(()=>{setAccountOpen(false);setPending(null)},[]);
   const closeArena = useCallback(()=>setSelected(null),[]);
@@ -295,7 +313,7 @@ export default function Home() {
   const closeMenu = () => setMenuOpen(false);
   const openTicket = (ticket: TicketSample) => { if(member) setSelected(ticket); else {setPending(ticket);setAccountOpen(true);} };
   const signIn = (name: string) => { setMember(name);setAccountOpen(false);if(pending)setSelected(pending);setPending(null); };
-  const signOut = () => {setMember(null);setHistory({});setSelected(null);};
+  const signOut = () => {setMember(null);setHistory({});setRegistrations([]);setSelected(null);};
 
   return (
     <div className="site">
@@ -348,7 +366,7 @@ export default function Home() {
           <div className="shell">
             <div className="section-heading"><div><div className="section-kicker"><span className="kicker-line"/> THE MARKETPLACE</div><h2>Find your <em>next moment.</em></h2><p>Discover concerts, sports, cinema, comedy and campus events. Find a ticket and enter the Bidding Arena.</p></div><span className="section-counter">01 <span>/</span> 03</span></div>
             <div className="market-toolbar"><div className="category-filter" role="group" aria-label="Filter ticket category"><button className={category==='All'?'active':''} onClick={()=>setCategory('All')}>All tickets</button>{categories.map(cat=><button key={cat} className={category===cat?'active':''} onClick={()=>setCategory(cat)}><TicketIcon category={cat} size={15}/>{cat}</button>)}</div><span className="results-count">{visible.length.toString().padStart(2,'0')} COLLECTION ITEMS</span></div>
-            <div className="listing-grid">{visible.map(ticket=><TicketCard key={ticket.id} ticket={ticket} onPreview={openTicket} highest={history[ticket.id]?.[history[ticket.id].length-1] ?? ticket.bid}/>)}</div>
+            <div className="listing-grid">{visible.map(ticket=><TicketCard key={ticket.id} ticket={ticket} onPreview={openTicket} highest={history[ticket.id]?.[history[ticket.id].length-1] ?? ticket.bid} registered={registrations.includes(ticket.id)}/>)}</div>
             <p className="market-note"><ShieldCheck size={16}/> Resale requires organizer permission. Our standard bidding range is 80%–120% of the original price, only where the event’s policy permits it.</p>
           </div>
         </section>
@@ -357,7 +375,7 @@ export default function Home() {
           <div className="shell"><div className="section-heading"><div><div className="section-kicker"><span className="kicker-line"/> THE EXPERIENCE</div><h2>Simple by design.<br/><em>Exciting by nature.</em></h2></div><span className="section-counter">02 <span>/</span> 03</span></div>
             <div className="steps-grid">
               <div className="step-card"><div className="step-top"><span>01</span><Ticket size={28}/></div><div className="step-main"><h3>A ticket becomes available</h3><p>Eligible event tickets are listed according to the organizer’s resale policy.</p></div><span className="step-foot">THE OPPORTUNITY <ArrowUpRight size={17}/></span></div>
-              <div className="step-card"><div className="step-top"><span>02</span><Gavel size={28}/></div><div className="step-main"><h3>People join the auction</h3><p>Interested buyers place increasing bids. The countdown adds energy, while the pricing stays clear.</p></div><span className="step-foot">THE EXCITEMENT <ArrowUpRight size={17}/></span></div>
+              <div className="step-card"><div className="step-top"><span>02</span><Gavel size={28}/></div><div className="step-main"><h3>People join the auction</h3><p>Register for an eligible event, accept its auction rules, and place increasing bids within the permitted price range.</p></div><span className="step-foot">THE EXCITEMENT <ArrowUpRight size={17}/></span></div>
               <div className="step-card"><div className="step-top"><span>03</span><Sparkles size={28}/></div><div className="step-main"><h3>The highest bid wins</h3><p>The highest eligible bid wins within the event’s configured price limit.</p></div><span className="step-foot">THE HAPPY ENDING <ArrowUpRight size={17}/></span></div>
             </div>
           </div>
@@ -369,14 +387,14 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="faq-section section-space" id="faq"><div className="shell faq-grid"><div><div className="section-kicker"><span className="kicker-line"/> GOOD TO KNOW</div><h2>Curious?<br/><em>We thought so.</em></h2><p className="faq-intro">A few quick answers about what you’re looking at.</p></div><div className="faq-list"><details><summary>Can I actually buy or sell a ticket here? <ChevronDown size={20}/></summary><p>This presentation sandbox uses sample listings and local bidding. No real payments or ticket transfers take place.</p></details><details><summary>Do I need an account to explore? <ChevronDown size={20}/></summary><p>You can explore events freely. To bid, use the local presentation account; no real authentication or customer data is needed.</p></details><details><summary>How does the auction preview work? <ChevronDown size={20}/></summary><p>Open the Bidding Arena, choose a suggested amount or enter a custom bid, and follow your activity in My Account.</p></details><details><summary>Can every ticket be transferred? <ChevronDown size={20}/></summary><p>No. Resale must be permitted by the event organizer or authorized ticketing platform. Our standard range is 80%–120% of original price, subject to their permission and any stricter limits.</p></details></div></div></section>
+        <section className="faq-section section-space" id="faq"><div className="shell faq-grid"><div><div className="section-kicker"><span className="kicker-line"/> GOOD TO KNOW</div><h2>Curious?<br/><em>We thought so.</em></h2><p className="faq-intro">A few quick answers about what you’re looking at.</p></div><div className="faq-list"><details><summary>Can I actually buy or sell a ticket here? <ChevronDown size={20}/></summary><p>This presentation sandbox uses sample listings and local bidding. No real payments or ticket transfers take place.</p></details><details><summary>Do I need an account to explore? <ChevronDown size={20}/></summary><p>You can explore events freely. To bid, use the local presentation account; no real authentication or customer data is needed.</p></details><details><summary>How does the auction preview work? <ChevronDown size={20}/></summary><p>Apply for a ticket, confirm your registration and accept the auction rules. Then choose a suggested amount or enter your own bid. Track registrations and bidding activity in My Account.</p></details><details><summary>Can every ticket be transferred? <ChevronDown size={20}/></summary><p>No. Resale must be permitted by the event organizer or authorized ticketing platform. Our standard range is 80%–120% of original price, subject to their permission and any stricter limits.</p></details></div></div></section>
 
         <section className="final-banner"><div className="shell final-content"><div className="final-star">✦</div><div className="section-kicker final-kicker">THIS IS JUST THE BEGINNING</div><h2>Good stories deserve<br/><em>an encore.</em></h2><p>One ticket, a whole new story.</p><a href="#explore" className="button button-gold">Explore events <ArrowUpRight size={19}/></a></div></section>
       </main>
       <footer className="footer"><div className="shell footer-top"><a className="brand footer-brand" href="#top"><span className="brand-icon"><Ticket size={21}/></span><span>BID<span className="brand-gold">MY</span>TICKET<span className="brand-period">.</span></span></a><div className="footer-links"><a href="#explore">Explore</a><a href="#how">How it works</a><a href="#why">Fair resale</a><a href="#faq">FAQ</a></div></div><div className="shell footer-bottom"><span>© 2026 BIDMYTICKET. BUILT TO REIMAGINE THE POSSIBLE.</span><span>PRESENTATION SANDBOX · NO REAL TRANSACTIONS</span></div></footer>
 
-      {selected && member && <BiddingArena key={selected.id} ticket={selected} member={member} placedBids={history[selected.id] || []} onBid={amount=>setHistory(prev=>({...prev,[selected.id]:[...(prev[selected.id] || []),amount]}))} onReset={()=>setHistory(prev=>({...prev,[selected.id]:[]}))} onClose={closeArena}/>}
-      {accountOpen && <AccountPanel member={member} onSignIn={signIn} onSignOut={signOut} onClose={closeAccount} history={history}/>}
+      {selected && member && <BiddingArena key={selected.id} ticket={selected} member={member} registered={registrations.includes(selected.id)} onRegister={()=>setRegistrations(prev=>prev.includes(selected.id)?prev:[...prev,selected.id])} placedBids={history[selected.id] || []} onBid={amount=>{if(!registrations.includes(selected.id))return;setHistory(prev=>({...prev,[selected.id]:[...(prev[selected.id] || []),amount]}));}} onReset={()=>setHistory(prev=>({...prev,[selected.id]:[]}))} onClose={closeArena}/>}
+      {accountOpen && <AccountPanel member={member} onSignIn={signIn} onSignOut={signOut} onClose={closeAccount} history={history} registrations={registrations} onOpenTicket={ticket=>{setAccountOpen(false);setSelected(ticket);}}/>}
     </div>
   );
 }
